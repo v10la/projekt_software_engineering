@@ -1,0 +1,59 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { persons, gifts } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { generateGiftSuggestions } from "@/lib/ai";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { personId } = await req.json();
+
+    if (!personId) {
+      return NextResponse.json(
+        { error: "personId is required" },
+        { status: 400 }
+      );
+    }
+
+    const person = db
+      .select()
+      .from(persons)
+      .where(eq(persons.id, personId))
+      .get();
+
+    if (!person) {
+      return NextResponse.json(
+        { error: "Person not found" },
+        { status: 404 }
+      );
+    }
+
+    const personGifts = db
+      .select()
+      .from(gifts)
+      .where(eq(gifts.personId, personId))
+      .all();
+
+    const pastGiftTitles = personGifts
+      .filter((g) => !g.isIdea)
+      .map((g) => g.title);
+    const ideaTitles = personGifts
+      .filter((g) => g.isIdea)
+      .map((g) => g.title);
+
+    const suggestions = await generateGiftSuggestions(
+      person.name,
+      person.notes || "",
+      pastGiftTitles,
+      ideaTitles
+    );
+
+    return NextResponse.json({ suggestions });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to generate suggestions";
+    return NextResponse.json(
+      { error: message },
+      { status: 500 }
+    );
+  }
+}
