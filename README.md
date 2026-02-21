@@ -37,7 +37,6 @@ A full-stack gift management application for tracking gifts and gift ideas for f
 ### Installation
 
 ```bash
-cd geschenke-manager
 npm install
 ```
 
