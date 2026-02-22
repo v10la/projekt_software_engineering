@@ -20,20 +20,22 @@ export async function generateGiftSuggestions(
     throw new Error("OPENAI_API_KEY is not configured");
   }
 
-  const prompt = `You are a creative gift advisor. Based on the following information about a person, suggest 6 unique and thoughtful gift ideas.
+  const prompt = `Du bist ein kreativer Geschenkberater. Basierend auf den folgenden Informationen über eine Person schlage 6 einzigartige und durchdachte Geschenkideen vor.
 
 Person: ${personName}
-Notes about the person: ${personNotes || "No additional notes"}
-Past gifts they received: ${pastGifts.length > 0 ? pastGifts.join(", ") : "None recorded"}
-Current gift ideas already planned: ${existingIdeas.length > 0 ? existingIdeas.join(", ") : "None"}
+Notizen zur Person: ${personNotes || "Keine zusätzlichen Notizen"}
+Bereits erhaltene Geschenke: ${pastGifts.length > 0 ? pastGifts.join(", ") : "Keine erfasst"}
+Bereits geplante Geschenkideen: ${existingIdeas.length > 0 ? existingIdeas.join(", ") : "Keine"}
 
-Please suggest 6 gift ideas that:
-1. Are different from past gifts and existing ideas
-2. Match the person's apparent interests based on past gifts
-3. Range from small to medium budget
-4. Are creative and thoughtful
+Bitte schlage 6 Geschenkideen vor, die:
+1. Sich von vergangenen Geschenken und bestehenden Ideen unterscheiden
+2. Zu den erkennbaren Interessen der Person basierend auf vergangenen Geschenken passen
+3. Von kleinem bis mittlerem Budget reichen
+4. Kreativ und durchdacht sind
 
-Respond in JSON format as an array of objects with "title", "description", and "estimatedPrice" fields. Only respond with the JSON array, no other text.`;
+WICHTIG: Alle Vorschläge müssen auf Deutsch sein. Die Felder "title" (Titel) und "description" (Beschreibung) sowie "estimatedPrice" (geschätzter Preis, z.B. "15-25 €") müssen vollständig auf Deutsch formuliert sein.
+
+Antworte im JSON-Format als Array von Objekten mit den Feldern "title", "description" und "estimatedPrice". Antworte ausschließlich mit dem JSON-Array, ohne weiteren Text.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
