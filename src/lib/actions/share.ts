@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { shareTokens, persons, gifts, occasions } from "@/lib/db/schema";
+import { shareTokens, persons, gifts, occasions, giftLinks, giftImages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
@@ -40,7 +40,7 @@ export async function getSharedData(token: string) {
 
   if (!person) return null;
 
-  const ideas = db
+  const rawIdeas = db
     .select({
       id: gifts.id,
       title: gifts.title,
@@ -53,6 +53,16 @@ export async function getSharedData(token: string) {
     .leftJoin(occasions, eq(gifts.occasionId, occasions.id))
     .where(eq(gifts.personId, shareToken.personId))
     .all();
+
+  const ideas = rawIdeas.map((idea) => {
+    const links = db.select().from(giftLinks).where(eq(giftLinks.giftId, idea.id)).all();
+    const images = db.select().from(giftImages).where(eq(giftImages.giftId, idea.id)).all();
+    return {
+      ...idea,
+      links: links.map((l) => l.url),
+      images: images.map((i) => i.imagePath),
+    };
+  });
 
   return { person, ideas };
 }

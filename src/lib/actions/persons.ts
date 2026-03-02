@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { persons, gifts, occasions, tasks } from "@/lib/db/schema";
+import { persons, gifts, occasions, tasks, giftLinks, giftImages } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -44,7 +44,22 @@ export async function getPersonWithGifts(id: number) {
       .from(tasks)
       .where(eq(tasks.giftId, gift.id))
       .all();
-    return { ...gift, tasks: giftTasks };
+    const links = db
+      .select()
+      .from(giftLinks)
+      .where(eq(giftLinks.giftId, gift.id))
+      .all();
+    const images = db
+      .select()
+      .from(giftImages)
+      .where(eq(giftImages.giftId, gift.id))
+      .all();
+    return {
+      ...gift,
+      tasks: giftTasks,
+      links: links.map((l) => l.url),
+      images: images.map((i) => i.imagePath),
+    };
   });
 
   return { ...person, gifts: giftsWithTasks };

@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Plus, X } from "lucide-react";
 
 interface GiftEditFormProps {
   gift: {
@@ -29,6 +30,8 @@ interface GiftEditFormProps {
     isIdea: boolean;
     isPurchased: boolean;
     occasionId: number | null;
+    links?: string[];
+    images?: string[];
   };
   occasions: { id: number; name: string; isDefault: boolean | null }[];
 }
@@ -38,13 +41,28 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
   const [loading, setLoading] = useState(false);
   const [isIdea, setIsIdea] = useState(gift.isIdea);
   const [isPurchased, setIsPurchased] = useState(gift.isPurchased);
-  const [imagePath, setImagePath] = useState(gift.imagePath || "");
+
+  const initialLinks = gift.links && gift.links.length > 0
+    ? gift.links
+    : gift.link
+      ? [gift.link]
+      : [""];
+  const initialImages = gift.images && gift.images.length > 0
+    ? gift.images
+    : gift.imagePath
+      ? [gift.imagePath]
+      : [];
+
+  const [links, setLinks] = useState<string[]>(initialLinks.length > 0 ? initialLinks : [""]);
+  const [images, setImages] = useState<string[]>(initialImages);
+  const [uploading, setUploading] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     formData.set("isIdea", String(isIdea));
     formData.set("isPurchased", String(isPurchased));
-    formData.set("imagePath", imagePath);
+    formData.set("links", JSON.stringify(links.filter(Boolean)));
+    formData.set("images", JSON.stringify(images.filter(Boolean)));
     try {
       const result = await updateGift(gift.id, formData);
       if (result.success) {
@@ -56,16 +74,23 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const res = await fetch("/api/upload", { method: "POST", body: formData });
-    const data = await res.json();
-    if (data.path) {
-      setImagePath(data.path);
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.path) {
+          setImages((prev) => [...prev, data.path]);
+        }
+      }
+    } finally {
+      setUploading(false);
+      e.target.value = "";
     }
   }
 
@@ -95,16 +120,6 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="link">Link</Label>
-              <Input
-                id="link"
-                name="link"
-                type="url"
-                defaultValue={gift.link || ""}
-                placeholder="https://..."
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="giftDate">Datum</Label>
               <Input
                 id="giftDate"
@@ -113,39 +128,97 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
                 defaultValue={gift.giftDate || ""}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Anlass</Label>
+              <Select
+                name="occasionId"
+                defaultValue={gift.occasionId ? String(gift.occasionId) : undefined}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Anlass auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {occasions.map((occ) => (
+                    <SelectItem key={occ.id} value={String(occ.id)}>
+                      {occ.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Anlass</Label>
-            <Select
-              name="occasionId"
-              defaultValue={gift.occasionId ? String(gift.occasionId) : undefined}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Anlass auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                {occasions.map((occ) => (
-                  <SelectItem key={occ.id} value={String(occ.id)}>
-                    {occ.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Bild</Label>
-            {imagePath && (
-              <div className="mb-2">
-                <img
-                  src={imagePath}
-                  alt="Gift"
-                  className="w-32 h-32 object-cover rounded-lg"
+            <Label>Links</Label>
+            {links.map((link, i) => (
+              <div key={i} className="flex gap-2">
+                <Input
+                  type="url"
+                  placeholder="https://..."
+                  value={link}
+                  onChange={(e) => {
+                    const updated = [...links];
+                    updated[i] = e.target.value;
+                    setLinks(updated);
+                  }}
                 />
+                {links.length > 1 && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLinks(links.filter((_, j) => j !== i))}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setLinks([...links, ""])}
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Weiteren Link hinzufügen
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Bilder</Label>
+            {images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {images.map((img, i) => (
+                  <div key={i} className="relative group">
+                    <img
+                      src={img}
+                      alt={`Bild ${i + 1}`}
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImages(images.filter((_, j) => j !== i))}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
-            <Input type="file" accept="image/*" onChange={handleImageUpload} />
+            <div className="flex items-center gap-2">
+              <Input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                disabled={uploading}
+              />
+              {uploading && (
+                <span className="text-sm text-muted-foreground">Wird hochgeladen...</span>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-6">

@@ -59,6 +59,22 @@ export const tasks = sqliteTable("tasks", {
   isDone: integer("is_done", { mode: "boolean" }).notNull().default(false),
 });
 
+export const giftLinks = sqliteTable("gift_links", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  giftId: integer("gift_id")
+    .notNull()
+    .references(() => gifts.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+});
+
+export const giftImages = sqliteTable("gift_images", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  giftId: integer("gift_id")
+    .notNull()
+    .references(() => gifts.id, { onDelete: "cascade" }),
+  imagePath: text("image_path").notNull(),
+});
+
 export const shareTokens = sqliteTable("share_tokens", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   personId: integer("person_id")
@@ -86,10 +102,20 @@ export const giftsRelations = relations(gifts, ({ one, many }) => ({
     references: [occasions.id],
   }),
   tasks: many(tasks),
+  links: many(giftLinks),
+  images: many(giftImages),
 }));
 
 export const tasksRelations = relations(tasks, ({ one }) => ({
   gift: one(gifts, { fields: [tasks.giftId], references: [gifts.id] }),
+}));
+
+export const giftLinksRelations = relations(giftLinks, ({ one }) => ({
+  gift: one(gifts, { fields: [giftLinks.giftId], references: [gifts.id] }),
+}));
+
+export const giftImagesRelations = relations(giftImages, ({ one }) => ({
+  gift: one(gifts, { fields: [giftImages.giftId], references: [gifts.id] }),
 }));
 
 export const shareTokensRelations = relations(shareTokens, ({ one }) => ({

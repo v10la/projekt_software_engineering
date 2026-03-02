@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { gifts, tasks } from "@/lib/db/schema";
+import { gifts, tasks, giftLinks, giftImages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -9,13 +9,22 @@ export async function createGift(formData: FormData) {
   const personId = parseInt(formData.get("personId") as string);
   const title = formData.get("title") as string;
   const description = (formData.get("description") as string) || "";
-  const link = (formData.get("link") as string) || "";
-  const imagePath = (formData.get("imagePath") as string) || "";
   const occasionId = formData.get("occasionId")
     ? parseInt(formData.get("occasionId") as string)
     : null;
   const giftDate = (formData.get("giftDate") as string) || null;
   const isIdea = formData.get("isIdea") === "true";
+  const isPurchased = formData.get("isPurchased") === "true";
+
+  const linksJson = formData.get("links") as string;
+  const links: string[] = linksJson ? JSON.parse(linksJson) : [];
+  const singleLink = (formData.get("link") as string) || "";
+  if (singleLink && !links.includes(singleLink)) links.push(singleLink);
+
+  const imagesJson = formData.get("images") as string;
+  const images: string[] = imagesJson ? JSON.parse(imagesJson) : [];
+  const singleImage = (formData.get("imagePath") as string) || "";
+  if (singleImage && !images.includes(singleImage)) images.push(singleImage);
 
   if (!title || !personId) {
     return { error: "Title and person are required" };
@@ -27,15 +36,22 @@ export async function createGift(formData: FormData) {
       personId,
       title,
       description,
-      link,
-      imagePath,
+      link: links[0] || "",
+      imagePath: images[0] || "",
       occasionId,
       giftDate,
       isIdea,
-      isPurchased: false,
+      isPurchased,
     })
     .returning()
     .get();
+
+  for (const url of links.filter(Boolean)) {
+    db.insert(giftLinks).values({ giftId: result.id, url }).run();
+  }
+  for (const imgPath of images.filter(Boolean)) {
+    db.insert(giftImages).values({ giftId: result.id, imagePath: imgPath }).run();
+  }
 
   revalidatePath(`/persons/${personId}`);
   revalidatePath("/");
@@ -45,8 +61,6 @@ export async function createGift(formData: FormData) {
 export async function updateGift(id: number, formData: FormData) {
   const title = formData.get("title") as string;
   const description = (formData.get("description") as string) || "";
-  const link = (formData.get("link") as string) || "";
-  const imagePath = (formData.get("imagePath") as string) || "";
   const occasionId = formData.get("occasionId")
     ? parseInt(formData.get("occasionId") as string)
     : null;
@@ -54,15 +68,39 @@ export async function updateGift(id: number, formData: FormData) {
   const isIdea = formData.get("isIdea") === "true";
   const isPurchased = formData.get("isPurchased") === "true";
 
+  const linksJson = formData.get("links") as string;
+  const links: string[] = linksJson ? JSON.parse(linksJson) : [];
+  const imagesJson = formData.get("images") as string;
+  const images: string[] = imagesJson ? JSON.parse(imagesJson) : [];
+
   if (!title) return { error: "Title is required" };
 
   const gift = db.select().from(gifts).where(eq(gifts.id, id)).get();
   if (!gift) return { error: "Gift not found" };
 
   db.update(gifts)
-    .set({ title, description, link, imagePath, occasionId, giftDate, isIdea, isPurchased })
+    .set({
+      title,
+      description,
+      link: links[0] || "",
+      imagePath: images[0] || "",
+      occasionId,
+      giftDate,
+      isIdea,
+      isPurchased,
+    })
     .where(eq(gifts.id, id))
     .run();
+
+  db.delete(giftLinks).where(eq(giftLinks.giftId, id)).run();
+  for (const url of links.filter(Boolean)) {
+    db.insert(giftLinks).values({ giftId: id, url }).run();
+  }
+
+  db.delete(giftImages).where(eq(giftImages.giftId, id)).run();
+  for (const imgPath of images.filter(Boolean)) {
+    db.insert(giftImages).values({ giftId: id, imagePath: imgPath }).run();
+  }
 
   revalidatePath(`/persons/${gift.personId}`);
   revalidatePath(`/gifts/${id}`);
@@ -118,5 +156,12 @@ export async function getGiftWithTasks(id: number) {
   if (!gift) return null;
 
   const giftTasks = db.select().from(tasks).where(eq(tasks.giftId, id)).all();
-  return { ...gift, tasks: giftTasks };
+  const links = db.select().from(giftLinks).where(eq(giftLinks.giftId, id)).all();
+  const images = db.select().from(giftImages).where(eq(giftImages.giftId, id)).all();
+  return {
+    ...gift,
+    tasks: giftTasks,
+    links: links.map((l) => l.url),
+    images: images.map((i) => i.imagePath),
+  };
 }

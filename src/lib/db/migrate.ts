@@ -66,10 +66,53 @@ sqlite.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS gift_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gift_id INTEGER NOT NULL REFERENCES gifts(id) ON DELETE CASCADE,
+    url TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS gift_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gift_id INTEGER NOT NULL REFERENCES gifts(id) ON DELETE CASCADE,
+    image_path TEXT NOT NULL
+  );
+
   -- Seed default occasions
   INSERT OR IGNORE INTO occasions (id, name, is_default) VALUES (1, 'Geburtstag', 1);
   INSERT OR IGNORE INTO occasions (id, name, is_default) VALUES (2, 'Weihnachten', 1);
 `);
+
+// Migrate existing link and image_path data into the new tables
+const giftsWithLinks = sqlite
+  .prepare("SELECT id, link FROM gifts WHERE link IS NOT NULL AND link != ''")
+  .all() as { id: number; link: string }[];
+
+for (const g of giftsWithLinks) {
+  const existing = sqlite
+    .prepare("SELECT id FROM gift_links WHERE gift_id = ? AND url = ?")
+    .get(g.id, g.link);
+  if (!existing) {
+    sqlite
+      .prepare("INSERT INTO gift_links (gift_id, url) VALUES (?, ?)")
+      .run(g.id, g.link);
+  }
+}
+
+const giftsWithImages = sqlite
+  .prepare("SELECT id, image_path FROM gifts WHERE image_path IS NOT NULL AND image_path != ''")
+  .all() as { id: number; image_path: string }[];
+
+for (const g of giftsWithImages) {
+  const existing = sqlite
+    .prepare("SELECT id FROM gift_images WHERE gift_id = ? AND image_path = ?")
+    .get(g.id, g.image_path);
+  if (!existing) {
+    sqlite
+      .prepare("INSERT INTO gift_images (gift_id, image_path) VALUES (?, ?)")
+      .run(g.id, g.image_path);
+  }
+}
 
 const existingAdmin = sqlite
   .prepare("SELECT id FROM users WHERE email = ?")

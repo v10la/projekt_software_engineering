@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { persons, gifts, occasions } from "@/lib/db/schema";
+import { persons, gifts, occasions, giftLinks } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 
 export async function GET() {
@@ -68,10 +68,23 @@ export async function GET() {
         else badges.push('<span class="badge badge-gift">Geschenk</span>');
         if (gift.isPurchased) badges.push('<span class="badge badge-purchased">Gekauft</span>');
 
+        const links = db
+          .select()
+          .from(giftLinks)
+          .where(eq(giftLinks.giftId, gift.id))
+          .all();
+        const linkUrls = links.length > 0
+          ? links.map((l) => l.url)
+          : gift.link ? [gift.link] : [];
+
+        const linksHtml = linkUrls
+          .map((url) => `<p class="meta"><a href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</a></p>`)
+          .join("\n      ");
+
         html += `    <div class="gift">
       <h3>${escapeHtml(gift.title)} ${badges.join(" ")}${gift.occasionName ? ` <span class="meta">— ${escapeHtml(gift.occasionName)}</span>` : ""}</h3>
       ${gift.description ? `<p class="meta">${escapeHtml(gift.description)}</p>` : ""}
-      ${gift.link ? `<p class="meta"><a href="${escapeHtml(gift.link)}" target="_blank">${escapeHtml(gift.link)}</a></p>` : ""}
+      ${linksHtml}
       ${gift.giftDate ? `<p class="meta">Datum: ${gift.giftDate}</p>` : ""}
     </div>\n`;
       }

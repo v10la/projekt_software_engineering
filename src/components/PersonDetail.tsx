@@ -37,6 +37,7 @@ import {
   Link as LinkIcon,
   ListTodo,
   Copy,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,6 +53,8 @@ type GiftType = {
   createdAt: string;
   occasionId: number | null;
   occasionName: string | null;
+  links: string[];
+  images: string[];
   tasks: { id: number; title: string; isDone: boolean; giftId: number }[];
 };
 
@@ -79,13 +82,20 @@ export default function PersonDetail({
   const router = useRouter();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [convertingId, setConvertingId] = useState<number | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<{ title: string; description: string; estimatedPrice?: string }[]>([]);
   const [loadingAi, setLoadingAi] = useState(false);
   const [newTaskGiftId, setNewTaskGiftId] = useState<number | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+
+  // Add form state for multiple links and images
+  const [addLinks, setAddLinks] = useState<string[]>([""]);
+  const [addImages, setAddImages] = useState<string[]>([]);
+  const [addIsIdea, setAddIsIdea] = useState(true);
+  const [addIsPurchased, setAddIsPurchased] = useState(false);
+  const [uploadingAdd, setUploadingAdd] = useState(false);
 
   const ideas = person.gifts.filter((g) => g.isIdea);
   const pastGifts = person.gifts.filter((g) => !g.isIdea);
@@ -101,12 +111,40 @@ export default function PersonDetail({
     }
   }
 
-  async function handleQuickAdd(formData: FormData) {
+  async function handleAddGift(formData: FormData) {
     formData.set("personId", String(person.id));
-    formData.set("isIdea", "true");
+    formData.set("isIdea", String(addIsIdea));
+    formData.set("isPurchased", String(addIsPurchased));
+    formData.set("links", JSON.stringify(addLinks.filter(Boolean)));
+    formData.set("images", JSON.stringify(addImages.filter(Boolean)));
     await createGift(formData);
-    setShowQuickAdd(false);
+    setShowAddForm(false);
+    setAddLinks([""]);
+    setAddImages([]);
+    setAddIsIdea(true);
+    setAddIsPurchased(false);
     router.refresh();
+  }
+
+  async function handleAddImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingAdd(true);
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.path) {
+          setAddImages((prev) => [...prev, data.path]);
+        }
+      }
+    } finally {
+      setUploadingAdd(false);
+      e.target.value = "";
+    }
   }
 
   async function handleConvert(giftId: number, formData: FormData) {
@@ -154,10 +192,12 @@ export default function PersonDetail({
     formData.set("title", title);
     formData.set("description", description);
     formData.set("isIdea", "true");
+    formData.set("links", "[]");
+    formData.set("images", "[]");
     await createGift(formData);
     setAiSuggestions((prev) => prev.filter((s) => s.title !== title));
     router.refresh();
-    toast({ title: "Added!", description: `"${title}" added to ideas` });
+    toast({ title: "Hinzugefügt!", description: `"${title}" zu Ideen hinzugefügt` });
   }
 
   async function handleAddTask(giftId: number) {
@@ -184,7 +224,22 @@ export default function PersonDetail({
     router.refresh();
   }
 
+  function getGiftLinks(gift: GiftType): string[] {
+    if (gift.links && gift.links.length > 0) return gift.links;
+    if (gift.link) return [gift.link];
+    return [];
+  }
+
+  function getGiftImages(gift: GiftType): string[] {
+    if (gift.images && gift.images.length > 0) return gift.images;
+    if (gift.imagePath) return [gift.imagePath];
+    return [];
+  }
+
   function renderGiftCard(gift: GiftType) {
+    const links = getGiftLinks(gift);
+    const images = getGiftImages(gift);
+
     return (
       <Card key={gift.id} className="relative">
         <CardContent className="pt-6">
@@ -197,16 +252,21 @@ export default function PersonDetail({
                     {gift.occasionName}
                   </Badge>
                 )}
-                {gift.isPurchased && (
-                    <Badge className="bg-green-100 text-green-800 text-xs">
-                    <Check className="w-3 h-3 mr-1" />
-                    Gekauft
-                  </Badge>
-                )}
-                {gift.isIdea && (
+                {gift.isIdea ? (
                   <Badge variant="secondary" className="text-xs">
                     <Lightbulb className="w-3 h-3 mr-1" />
-                    Idea
+                    Idee
+                  </Badge>
+                ) : (
+                  <Badge className="bg-blue-100 text-blue-800 text-xs">
+                    <Gift className="w-3 h-3 mr-1" />
+                    Geschenk
+                  </Badge>
+                )}
+                {gift.isPurchased && (
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    <Check className="w-3 h-3 mr-1" />
+                    Gekauft
                   </Badge>
                 )}
               </div>
@@ -215,26 +275,32 @@ export default function PersonDetail({
                   {gift.description}
                 </p>
               )}
-              {gift.link && (
-                <a
-                  href={gift.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline flex items-center gap-1 mt-1"
-                >
-                  <LinkIcon className="w-3 h-3" />
-                  {gift.link.length > 50
-                    ? gift.link.substring(0, 50) + "..."
-                    : gift.link}
-                </a>
+              {links.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {links.map((url, i) => (
+                    <a
+                      key={i}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                      {url.length > 50 ? url.substring(0, 50) + "..." : url}
+                    </a>
+                  ))}
+                </div>
               )}
-              {gift.imagePath && (
-                <div className="mt-2">
-                  <img
-                    src={gift.imagePath}
-                    alt={gift.title}
-                    className="w-32 h-32 object-cover rounded-lg"
-                  />
+              {images.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {images.map((imgPath, i) => (
+                    <img
+                      key={i}
+                      src={imgPath}
+                      alt={`${gift.title} ${i + 1}`}
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                  ))}
                 </div>
               )}
               {gift.giftDate && (
@@ -245,7 +311,7 @@ export default function PersonDetail({
 
               {gift.tasks.length > 0 && (
                 <div className="mt-3 space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                     <ListTodo className="w-3 h-3" />
                     Aufgaben ({gift.tasks.filter((t) => t.isDone).length}/
                     {gift.tasks.length})
@@ -277,7 +343,7 @@ export default function PersonDetail({
                   <Input
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="New task..."
+                    placeholder="Neue Aufgabe..."
                     className="h-8 text-sm"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -316,6 +382,18 @@ export default function PersonDetail({
             </div>
 
             <div className="flex flex-col gap-1">
+              <Button
+                size="sm"
+                variant={gift.isPurchased ? "secondary" : "outline"}
+                className="text-xs"
+                onClick={() => {
+                  togglePurchased(gift.id);
+                  router.refresh();
+                }}
+              >
+                <ShoppingCart className="w-3 h-3 mr-1" />
+                {gift.isPurchased ? "Nicht gekauft" : "Gekauft"}
+              </Button>
               {gift.isIdea && (
                 <>
                   {convertingId === gift.id ? (
@@ -369,20 +447,6 @@ export default function PersonDetail({
                   )}
                 </>
               )}
-              {!gift.isIdea && (
-                <Button
-                  size="sm"
-                  variant={gift.isPurchased ? "secondary" : "outline"}
-                  className="text-xs"
-                  onClick={() => {
-                    togglePurchased(gift.id);
-                    router.refresh();
-                  }}
-                >
-                  <ShoppingCart className="w-3 h-3 mr-1" />
-                  {gift.isPurchased ? "Nicht gekauft" : "Gekauft"}
-                </Button>
-              )}
               <Link href={`/gifts/${gift.id}`}>
                 <Button size="sm" variant="ghost" className="text-xs w-full">
                   <Edit className="w-3 h-3 mr-1" />
@@ -420,8 +484,8 @@ export default function PersonDetail({
               <Input name="birthday" type="date" defaultValue={person.birthday} />
               <Textarea name="notes" defaultValue={person.notes || ""} placeholder="Notizen..." rows={2} />
               <div className="flex gap-2">
-                <Button type="submit" size="sm">Save</Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+                <Button type="submit" size="sm">Speichern</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Abbrechen</Button>
               </div>
             </form>
           ) : (
@@ -467,7 +531,7 @@ export default function PersonDetail({
                 variant="outline"
                 onClick={() => {
                   navigator.clipboard.writeText(shareUrl);
-                  toast({ title: "Copied!" });
+                  toast({ title: "Kopiert!" });
                 }}
               >
                 <Copy className="w-4 h-4" />
@@ -478,9 +542,9 @@ export default function PersonDetail({
       )}
 
       <div className="flex gap-2">
-        <Button onClick={() => setShowQuickAdd(!showQuickAdd)}>
+        <Button onClick={() => setShowAddForm(!showAddForm)}>
           <Plus className="w-4 h-4 mr-2" />
-          Idee schnell hinzufügen
+          Geschenk / Idee hinzufügen
         </Button>
         <Button variant="outline" onClick={handleAiSuggest} disabled={loadingAi}>
           <Sparkles className="w-4 h-4 mr-2" />
@@ -488,33 +552,159 @@ export default function PersonDetail({
         </Button>
       </div>
 
-      {showQuickAdd && (
+      {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Idee schnell hinzufügen</CardTitle>
+            <CardTitle className="text-lg">Geschenk / Idee hinzufügen</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={handleQuickAdd} className="space-y-3">
+            <form action={handleAddGift} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Titel</Label>
-                <Input id="title" name="title" required placeholder="Geschenkidee..." />
+                <Label htmlFor="add-title">Titel *</Label>
+                <Input id="add-title" name="title" required placeholder="Geschenkidee..." />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="space-y-2">
+                <Label htmlFor="add-description">Beschreibung (optional)</Label>
+                <Textarea
+                  id="add-description"
+                  name="description"
+                  placeholder="Größe, Farbe, Details..."
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="link">Link (optional)</Label>
-                  <Input id="link" name="link" type="url" placeholder="https://..." />
+                  <Label htmlFor="add-giftDate">Datum (optional)</Label>
+                  <Input id="add-giftDate" name="giftDate" type="date" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Notiz (optional)</Label>
-                  <Input id="description" name="description" placeholder="Größe, Farbe, etc." />
+                  <Label>Anlass (optional)</Label>
+                  <Select name="occasionId">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Anlass auswählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {occasions.map((occ) => (
+                        <SelectItem key={occ.id} value={String(occ.id)}>
+                          {occ.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label>Links (optional)</Label>
+                {addLinks.map((link, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input
+                      type="url"
+                      placeholder="https://..."
+                      value={link}
+                      onChange={(e) => {
+                        const updated = [...addLinks];
+                        updated[i] = e.target.value;
+                        setAddLinks(updated);
+                      }}
+                    />
+                    {addLinks.length > 1 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setAddLinks(addLinks.filter((_, j) => j !== i))}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setAddLinks([...addLinks, ""])}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Weiteren Link hinzufügen
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Bilder (optional)</Label>
+                {addImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {addImages.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={img}
+                          alt={`Upload ${i + 1}`}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAddImages(addImages.filter((_, j) => j !== i))}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleAddImageUpload}
+                    disabled={uploadingAdd}
+                  />
+                  {uploadingAdd && (
+                    <span className="text-sm text-muted-foreground">Wird hochgeladen...</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="add-isIdea"
+                    checked={addIsIdea}
+                    onCheckedChange={(v) => setAddIsIdea(!!v)}
+                  />
+                  <Label htmlFor="add-isIdea">Ist eine Idee (noch kein Geschenk)</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="add-isPurchased"
+                    checked={addIsPurchased}
+                    onCheckedChange={(v) => setAddIsPurchased(!!v)}
+                  />
+                  <Label htmlFor="add-isPurchased">Bereits gekauft</Label>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button type="submit" size="sm">
                   <Plus className="w-4 h-4 mr-1" />
-                  Idee hinzufügen
+                  Hinzufügen
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setAddLinks([""]);
+                    setAddImages([]);
+                    setAddIsIdea(true);
+                    setAddIsPurchased(false);
+                  }}
+                >
                   Abbrechen
                 </Button>
               </div>
