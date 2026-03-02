@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ArrowLeft,
   Cake,
   Edit,
   Trash2,
@@ -90,6 +91,7 @@ export default function PersonDetail({
   const [loadingAi, setLoadingAi] = useState(false);
   const [newTaskGiftId, setNewTaskGiftId] = useState<number | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Add form state for multiple links and images
   const [addLinks, setAddLinks] = useState<string[]>([""]);
@@ -241,7 +243,28 @@ export default function PersonDetail({
   }
 
   async function handleUpdate(formData: FormData) {
-    await updatePerson(person.id, formData);
+    setEditError(null);
+    const birthday = formData.get("birthday") as string;
+    if (birthday) {
+      const birthDate = new Date(birthday);
+      const today = new Date();
+      if (birthDate > today) {
+        setEditError("Geburtstag darf nicht in der Zukunft liegen");
+        return;
+      }
+      const ageDiffMs = today.getTime() - birthDate.getTime();
+      const ageDate = new Date(ageDiffMs);
+      const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+      if (age > 120) {
+        setEditError("Alter darf 120 Jahre nicht überschreiten");
+        return;
+      }
+    }
+    const result = await updatePerson(person.id, formData);
+    if (result.error) {
+      setEditError(result.error);
+      return;
+    }
     setIsEditing(false);
     router.refresh();
   }
@@ -509,6 +532,14 @@ export default function PersonDetail({
 
   return (
     <div className="space-y-6">
+      <Link
+        href="/persons"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Zurück zur Liste
+      </Link>
+
       <div className="flex items-start justify-between">
         <div>
           {isEditing ? (
@@ -516,9 +547,12 @@ export default function PersonDetail({
               <Input name="name" defaultValue={person.name} className="text-2xl font-bold h-12" />
               <Input name="birthday" type="date" defaultValue={person.birthday} />
               <Textarea name="notes" defaultValue={person.notes || ""} placeholder="Notizen..." rows={2} />
+              {editError && (
+                <p className="text-sm text-destructive">{editError}</p>
+              )}
               <div className="flex gap-2">
                 <Button type="submit" size="sm">Speichern</Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Abbrechen</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => { setIsEditing(false); setEditError(null); }}>Abbrechen</Button>
               </div>
             </form>
           ) : (

@@ -88,9 +88,6 @@ export default function Navbar() {
             </button>
           </div>
         )}
-        <p className="text-xs text-muted-foreground text-center">
-          Geschenke-Manager v1.0
-        </p>
       </div>
     </aside>
   );

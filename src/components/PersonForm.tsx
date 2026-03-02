@@ -18,20 +18,49 @@ interface PersonFormProps {
   };
 }
 
+function validateBirthday(birthday: string): string | null {
+  const birthDate = new Date(birthday);
+  if (isNaN(birthDate.getTime())) return "Ungültiges Datum";
+  const today = new Date();
+  if (birthDate > today) return "Geburtstag darf nicht in der Zukunft liegen";
+  const ageDiffMs = today.getTime() - birthDate.getTime();
+  const ageDate = new Date(ageDiffMs);
+  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+  if (age > 120) return "Alter darf 120 Jahre nicht überschreiten";
+  return null;
+}
+
 export default function PersonForm({ person }: PersonFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(formData: FormData) {
+    setError(null);
+    const birthday = formData.get("birthday") as string;
+    const birthdayError = validateBirthday(birthday);
+    if (birthdayError) {
+      setError(birthdayError);
+      return;
+    }
+
     setLoading(true);
     try {
       if (person) {
         const result = await updatePerson(person.id, formData);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
         if (result.success) {
           router.push(`/persons/${person.id}`);
         }
       } else {
         const result = await createPerson(formData);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
         if (result.success) {
           router.push("/persons");
         }
@@ -75,6 +104,9 @@ export default function PersonForm({ person }: PersonFormProps) {
               rows={3}
             />
           </div>
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
           <div className="flex gap-2">
             <Button type="submit" disabled={loading}>
               {loading ? "Wird gespeichert..." : person ? "Aktualisieren" : "Person hinzufügen"}

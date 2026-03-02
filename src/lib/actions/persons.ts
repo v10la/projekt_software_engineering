@@ -65,6 +65,24 @@ export async function getPersonWithGifts(id: number) {
   return { ...person, gifts: giftsWithTasks };
 }
 
+function validateBirthday(birthday: string): string | null {
+  const birthDate = new Date(birthday);
+  if (isNaN(birthDate.getTime())) {
+    return "Invalid date";
+  }
+  const today = new Date();
+  if (birthDate > today) {
+    return "Birthday cannot be in the future";
+  }
+  const ageDiffMs = today.getTime() - birthDate.getTime();
+  const ageDate = new Date(ageDiffMs);
+  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+  if (age > 120) {
+    return "Age cannot exceed 120 years";
+  }
+  return null;
+}
+
 export async function createPerson(formData: FormData) {
   const name = formData.get("name") as string;
   const birthday = formData.get("birthday") as string;
@@ -72,6 +90,11 @@ export async function createPerson(formData: FormData) {
 
   if (!name || !birthday) {
     return { error: "Name and birthday are required" };
+  }
+
+  const birthdayError = validateBirthday(birthday);
+  if (birthdayError) {
+    return { error: birthdayError };
   }
 
   const result = db
@@ -92,6 +115,11 @@ export async function updatePerson(id: number, formData: FormData) {
 
   if (!name || !birthday) {
     return { error: "Name and birthday are required" };
+  }
+
+  const birthdayError = validateBirthday(birthday);
+  if (birthdayError) {
+    return { error: birthdayError };
   }
 
   db.update(persons)
