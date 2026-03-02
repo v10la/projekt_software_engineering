@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { Gift, Users, Home, Tag, Download } from "lucide-react";
+import { Gift, Users, Home, Tag, Download, LogOut, Shield } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Übersicht", icon: Home },
@@ -13,6 +14,7 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col">
@@ -51,6 +53,20 @@ export default function Navbar() {
         })}
       </nav>
       <div className="p-4 border-t border-border space-y-3">
+        {session?.user.role === "admin" && (
+          <Link
+            href="/admin"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              pathname === "/admin"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            <Shield className="w-4 h-4" />
+            Admin
+          </Link>
+        )}
         <a
           href="/api/export"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -58,6 +74,20 @@ export default function Navbar() {
           <Download className="w-4 h-4" />
           HTML exportieren
         </a>
+        {session && (
+          <div className="pt-2 border-t border-border space-y-2">
+            <p className="px-3 text-xs text-muted-foreground truncate">
+              {session.user.email}
+            </p>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
+            >
+              <LogOut className="w-4 h-4" />
+              Abmelden
+            </button>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground text-center">
           Geschenke-Manager v1.0
         </p>

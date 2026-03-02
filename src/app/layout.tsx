@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = localFont({
@@ -23,11 +24,13 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className={`${geistSans.variable} font-sans antialiased bg-background`}>
-        <Navbar />
-        <main className="ml-64 min-h-screen">
-          <div className="p-8">{children}</div>
-        </main>
-        <Toaster />
+        <Providers>
+          <Navbar />
+          <main className="ml-64 min-h-screen">
+            <div className="p-8">{children}</div>
+          </main>
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );
