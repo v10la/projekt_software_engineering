@@ -39,6 +39,7 @@ import {
   Copy,
   X,
 } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/hooks/use-toast";
 
 type GiftType = {
@@ -96,6 +97,10 @@ export default function PersonDetail({
   const [addIsIdea, setAddIsIdea] = useState(true);
   const [addIsPurchased, setAddIsPurchased] = useState(false);
   const [uploadingAdd, setUploadingAdd] = useState(false);
+  const [addOccasionId, setAddOccasionId] = useState<string | undefined>(undefined);
+  const [addDate, setAddDate] = useState("");
+  const [convertOccasionId, setConvertOccasionId] = useState<string | undefined>(undefined);
+  const [convertDate, setConvertDate] = useState("");
 
   const ideas = person.gifts.filter((g) => g.isIdea);
   const pastGifts = person.gifts.filter((g) => !g.isIdea);
@@ -117,12 +122,24 @@ export default function PersonDetail({
     formData.set("isPurchased", String(addIsPurchased));
     formData.set("links", JSON.stringify(addLinks.filter(Boolean)));
     formData.set("images", JSON.stringify(addImages.filter(Boolean)));
+    if (addOccasionId && addOccasionId !== "__none__") {
+      formData.set("occasionId", addOccasionId);
+    } else {
+      formData.delete("occasionId");
+    }
+    if (addDate) {
+      formData.set("giftDate", addDate);
+    } else {
+      formData.delete("giftDate");
+    }
     await createGift(formData);
     setShowAddForm(false);
     setAddLinks([""]);
     setAddImages([]);
     setAddIsIdea(true);
     setAddIsPurchased(false);
+    setAddOccasionId(undefined);
+    setAddDate("");
     router.refresh();
   }
 
@@ -147,11 +164,16 @@ export default function PersonDetail({
     }
   }
 
-  async function handleConvert(giftId: number, formData: FormData) {
-    const occasionId = formData.get("occasionId") ? parseInt(formData.get("occasionId") as string) : null;
-    const giftDate = (formData.get("giftDate") as string) || new Date().toISOString().split("T")[0];
+  async function handleConvert(giftId: number) {
+    const occasionId =
+      convertOccasionId && convertOccasionId !== "__none__"
+        ? parseInt(convertOccasionId)
+        : null;
+    const giftDate = convertDate || null;
     await convertIdeaToGift(giftId, occasionId, giftDate);
     setConvertingId(null);
+    setConvertOccasionId(undefined);
+    setConvertDate("");
     router.refresh();
   }
 
@@ -397,15 +419,16 @@ export default function PersonDetail({
               {gift.isIdea && (
                 <>
                   {convertingId === gift.id ? (
-                    <form
-                      action={(formData) => handleConvert(gift.id, formData)}
-                      className="space-y-2 p-3 bg-accent rounded-lg"
-                    >
-                      <Select name="occasionId">
+                    <div className="space-y-2 p-3 bg-accent rounded-lg">
+                      <Select
+                        value={convertOccasionId}
+                        onValueChange={setConvertOccasionId}
+                      >
                         <SelectTrigger className="h-8 text-xs w-40">
                           <SelectValue placeholder="Anlass" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="__none__">Kein Anlass</SelectItem>
                           {occasions.map((occ) => (
                             <SelectItem key={occ.id} value={String(occ.id)}>
                               {occ.name}
@@ -413,33 +436,43 @@ export default function PersonDetail({
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        name="giftDate"
-                        type="date"
-                        className="h-8 text-xs"
-                        defaultValue={new Date().toISOString().split("T")[0]}
+                      <DatePicker
+                        value={convertDate}
+                        onChange={setConvertDate}
+                        small
                       />
                       <div className="flex gap-1">
-                        <Button type="submit" size="sm" className="text-xs h-7">
+                        <Button
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => handleConvert(gift.id)}
+                        >
                           Umwandeln
                         </Button>
                         <Button
-                          type="button"
                           size="sm"
                           variant="ghost"
                           className="text-xs h-7"
-                          onClick={() => setConvertingId(null)}
+                          onClick={() => {
+                            setConvertingId(null);
+                            setConvertOccasionId(undefined);
+                            setConvertDate("");
+                          }}
                         >
                           Abbrechen
                         </Button>
                       </div>
-                    </form>
+                    </div>
                   ) : (
                     <Button
                       size="sm"
                       variant="outline"
                       className="text-xs"
-                      onClick={() => setConvertingId(gift.id)}
+                      onClick={() => {
+                        setConvertingId(gift.id);
+                        setConvertOccasionId(undefined);
+                        setConvertDate("");
+                      }}
                     >
                       <ArrowRight className="w-3 h-3 mr-1" />
                       Zu Geschenk machen
@@ -576,16 +609,20 @@ export default function PersonDetail({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="add-giftDate">Datum (optional)</Label>
-                  <Input id="add-giftDate" name="giftDate" type="date" />
+                  <Label>Datum (optional)</Label>
+                  <DatePicker value={addDate} onChange={setAddDate} />
                 </div>
                 <div className="space-y-2">
                   <Label>Anlass (optional)</Label>
-                  <Select name="occasionId">
+                  <Select
+                    value={addOccasionId}
+                    onValueChange={setAddOccasionId}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Anlass auswählen" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">Kein Anlass</SelectItem>
                       {occasions.map((occ) => (
                         <SelectItem key={occ.id} value={String(occ.id)}>
                           {occ.name}
@@ -703,6 +740,8 @@ export default function PersonDetail({
                     setAddImages([]);
                     setAddIsIdea(true);
                     setAddIsPurchased(false);
+                    setAddOccasionId(undefined);
+                    setAddDate("");
                   }}
                 >
                   Abbrechen

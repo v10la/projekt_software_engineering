@@ -8,7 +8,7 @@ import { Gift, Users, Home, Tag, Download, LogOut, Shield } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Übersicht", icon: Home },
-  { href: "/persons", label: "Personen", icon: Users },
+  { href: "/persons", label: "Personen & Geschenke", icon: Gift },
   { href: "/occasions", label: "Anlässe", icon: Tag },
 ];
 

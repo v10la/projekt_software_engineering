@@ -111,7 +111,7 @@ export async function updateGift(id: number, formData: FormData) {
 export async function convertIdeaToGift(
   id: number,
   occasionId: number | null,
-  giftDate: string
+  giftDate: string | null
 ) {
   const gift = db.select().from(gifts).where(eq(gifts.id, id)).get();
   if (!gift) return { error: "Gift not found" };

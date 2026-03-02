@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface GiftEditFormProps {
   gift: {
@@ -56,6 +57,10 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
   const [links, setLinks] = useState<string[]>(initialLinks.length > 0 ? initialLinks : [""]);
   const [images, setImages] = useState<string[]>(initialImages);
   const [uploading, setUploading] = useState(false);
+  const [occasionValue, setOccasionValue] = useState<string | undefined>(
+    gift.occasionId ? String(gift.occasionId) : undefined
+  );
+  const [giftDate, setGiftDate] = useState(gift.giftDate || "");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -63,6 +68,12 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
     formData.set("isPurchased", String(isPurchased));
     formData.set("links", JSON.stringify(links.filter(Boolean)));
     formData.set("images", JSON.stringify(images.filter(Boolean)));
+    if (occasionValue && occasionValue !== "__none__") {
+      formData.set("occasionId", occasionValue);
+    } else {
+      formData.delete("occasionId");
+    }
+    formData.set("giftDate", giftDate);
     try {
       const result = await updateGift(gift.id, formData);
       if (result.success) {
@@ -120,24 +131,20 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="giftDate">Datum</Label>
-              <Input
-                id="giftDate"
-                name="giftDate"
-                type="date"
-                defaultValue={gift.giftDate || ""}
-              />
+              <Label>Datum</Label>
+              <DatePicker value={giftDate} onChange={setGiftDate} />
             </div>
             <div className="space-y-2">
               <Label>Anlass</Label>
               <Select
-                name="occasionId"
-                defaultValue={gift.occasionId ? String(gift.occasionId) : undefined}
+                value={occasionValue}
+                onValueChange={setOccasionValue}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Anlass auswählen" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__none__">Kein Anlass</SelectItem>
                   {occasions.map((occ) => (
                     <SelectItem key={occ.id} value={String(occ.id)}>
                       {occ.name}
