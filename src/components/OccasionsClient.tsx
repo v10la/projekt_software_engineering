@@ -25,7 +25,7 @@ export default function OccasionsClient({ occasions }: OccasionsClientProps) {
     const result = await createOccasion(formData);
     if (result.success) {
       router.refresh();
-      toast({ title: "Occasion created" });
+      toast({ title: "Anlass erstellt" });
     }
   }
 
@@ -33,28 +33,28 @@ export default function OccasionsClient({ occasions }: OccasionsClientProps) {
     const result = await deleteOccasion(id);
     if (result.error) {
       toast({
-        title: "Cannot delete",
+        title: "Löschen nicht möglich",
         description: result.error,
         variant: "destructive",
       });
     } else {
       router.refresh();
-      toast({ title: "Occasion deleted" });
+      toast({ title: "Anlass gelöscht" });
     }
   }
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Occasions</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Anlässe</h1>
         <p className="text-muted-foreground mt-1">
-          Manage gift-giving occasions
+          Geschenkanlässe verwalten
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Add New Occasion</CardTitle>
+          <CardTitle className="text-lg">Neuen Anlass hinzufügen</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={handleCreate} className="flex gap-2">
@@ -66,7 +66,7 @@ export default function OccasionsClient({ occasions }: OccasionsClientProps) {
             />
             <Button type="submit">
               <Plus className="w-4 h-4 mr-2" />
-              Add
+              Hinzufügen
             </Button>
           </form>
         </CardContent>
@@ -82,7 +82,7 @@ export default function OccasionsClient({ occasions }: OccasionsClientProps) {
                   <span className="font-medium">{occasion.name}</span>
                   {occasion.isDefault && (
                     <Badge variant="secondary" className="text-xs">
-                      Default
+                      Standard
                     </Badge>
                   )}
                 </div>

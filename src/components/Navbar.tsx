@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import { Gift, Users, Home, Tag, Download } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: Home },
-  { href: "/persons", label: "Persons", icon: Users },
-  { href: "/occasions", label: "Occasions", icon: Tag },
+  { href: "/", label: "Übersicht", icon: Home },
+  { href: "/persons", label: "Personen", icon: Users },
+  { href: "/occasions", label: "Anlässe", icon: Tag },
 ];
 
 export default function Navbar() {
@@ -56,7 +56,7 @@ export default function Navbar() {
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <Download className="w-4 h-4" />
-          Export HTML
+          HTML exportieren
         </a>
         <p className="text-xs text-muted-foreground text-center">
           Geschenke-Manager v1.0

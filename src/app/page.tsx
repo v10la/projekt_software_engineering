@@ -71,7 +71,7 @@ function getChristmasStatus() {
         .from(persons)
         .where(eq(persons.id, g.personId))
         .get();
-      return { ...g, personName: person?.name || "Unknown" };
+      return { ...g, personName: person?.name || "Unbekannt" };
     });
   }
 
@@ -97,7 +97,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Overview of your gift planning
+          Übersicht deiner Geschenkplanung
         </p>
       </div>
 
@@ -110,7 +110,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.totalPersons}</p>
-                <p className="text-xs text-muted-foreground">Persons</p>
+                <p className="text-xs text-muted-foreground">Personen</p>
               </div>
             </div>
           </CardContent>
@@ -123,7 +123,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.totalIdeas}</p>
-                <p className="text-xs text-muted-foreground">Ideas</p>
+                <p className="text-xs text-muted-foreground">Ideen</p>
               </div>
             </div>
           </CardContent>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.totalGifts}</p>
-                <p className="text-xs text-muted-foreground">Planned Gifts</p>
+                <p className="text-xs text-muted-foreground">Geplante Geschenke</p>
               </div>
             </div>
           </CardContent>
@@ -149,7 +149,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.purchased}</p>
-                <p className="text-xs text-muted-foreground">Purchased</p>
+                <p className="text-xs text-muted-foreground">Gekauft</p>
               </div>
             </div>
           </CardContent>
@@ -161,13 +161,13 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Cake className="w-5 h-5 text-pink-500" />
-              Upcoming Birthdays
+              Bevorstehende Geburtstage
             </CardTitle>
           </CardHeader>
           <CardContent>
             {birthdays.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No birthdays in the next 60 days
+                Keine Geburtstage in den nächsten 60 Tagen
               </p>
             ) : (
               <div className="space-y-3">
@@ -180,7 +180,7 @@ export default function DashboardPage() {
                     <div>
                       <p className="font-medium">{person.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Turns {person.age} — {person.birthday}
+                        Wird {person.age} — {person.birthday}
                       </p>
                     </div>
                     <Badge
@@ -189,10 +189,10 @@ export default function DashboardPage() {
                       }
                     >
                       {person.daysUntil === 0
-                        ? "Today!"
+                        ? "Heute!"
                         : person.daysUntil === 1
-                          ? "Tomorrow"
-                          : `${person.daysUntil} days`}
+                          ? "Morgen"
+                          : `${person.daysUntil} Tage`}
                     </Badge>
                   </Link>
                 ))}
@@ -205,18 +205,18 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TreePine className="w-5 h-5 text-green-600" />
-              Christmas Status
+              Weihnachtsstatus
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-4">
               <Badge variant="outline" className="text-base px-3 py-1">
-                {christmas.daysUntil} days until Christmas
+                {christmas.daysUntil} Tage bis Weihnachten
               </Badge>
             </div>
             {christmas.gifts.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No Christmas gifts planned yet
+                Noch keine Weihnachtsgeschenke geplant
               </p>
             ) : (
               <div className="space-y-2">
@@ -241,10 +241,10 @@ export default function DashboardPage() {
                       }
                     >
                       {gift.isPurchased
-                        ? "Purchased"
+                        ? "Gekauft"
                         : gift.isIdea
-                          ? "Idea"
-                          : "Planned"}
+                          ? "Idee"
+                          : "Geplant"}
                     </Badge>
                   </div>
                 ))}

@@ -12,7 +12,7 @@ const geistSans = localFont({
 
 export const metadata: Metadata = {
   title: "Geschenke-Manager",
-  description: "Manage gifts for friends and family",
+  description: "Geschenke für Freunde und Familie verwalten",
 };
 
 export default function RootLayout({

@@ -74,7 +74,7 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
       <CardContent className="pt-6">
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">Titel</Label>
             <Input
               id="title"
               name="title"
@@ -84,7 +84,7 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Beschreibung</Label>
             <Textarea
               id="description"
               name="description"
@@ -105,7 +105,7 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="giftDate">Date</Label>
+              <Label htmlFor="giftDate">Datum</Label>
               <Input
                 id="giftDate"
                 name="giftDate"
@@ -116,13 +116,13 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Occasion</Label>
+            <Label>Anlass</Label>
             <Select
               name="occasionId"
               defaultValue={gift.occasionId ? String(gift.occasionId) : undefined}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select occasion" />
+                <SelectValue placeholder="Anlass auswählen" />
               </SelectTrigger>
               <SelectContent>
                 {occasions.map((occ) => (
@@ -135,7 +135,7 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Image</Label>
+            <Label>Bild</Label>
             {imagePath && (
               <div className="mb-2">
                 <img
@@ -155,7 +155,7 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
                 checked={isIdea}
                 onCheckedChange={(v) => setIsIdea(!!v)}
               />
-              <Label htmlFor="isIdea">Is an idea (not yet a gift)</Label>
+              <Label htmlFor="isIdea">Ist eine Idee (noch kein Geschenk)</Label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
@@ -163,20 +163,20 @@ export default function GiftEditForm({ gift, occasions }: GiftEditFormProps) {
                 checked={isPurchased}
                 onCheckedChange={(v) => setIsPurchased(!!v)}
               />
-              <Label htmlFor="isPurchased">Already purchased</Label>
+              <Label htmlFor="isPurchased">Bereits gekauft</Label>
             </div>
           </div>
 
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Wird gespeichert..." : "Änderungen speichern"}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
             >
-              Cancel
+              Abbrechen
             </Button>
           </div>
         </form>

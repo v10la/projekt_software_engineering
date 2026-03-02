@@ -20,17 +20,17 @@ export default async function SharedPage({
             <Gift className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold">
-            Gift Ideas for {data.person.name}
+            Geschenkideen für {data.person.name}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Shared gift list — {data.ideas.length} items
+            Geteilte Geschenkeliste — {data.ideas.length} Einträge
           </p>
         </div>
 
         {data.ideas.length === 0 ? (
           <Card>
             <CardContent className="pt-6 text-center">
-              <p className="text-muted-foreground">No gift ideas shared yet.</p>
+              <p className="text-muted-foreground">Noch keine Geschenkideen geteilt.</p>
             </CardContent>
           </Card>
         ) : (
@@ -54,7 +54,7 @@ export default async function SharedPage({
                           className="text-sm text-blue-600 hover:underline flex items-center gap-1 mt-2"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          View link
+                          Link öffnen
                         </a>
                       )}
                       {idea.imagePath && (

@@ -95,7 +95,7 @@ export default function PersonDetail({
   const age = now.getFullYear() - year;
 
   async function handleDelete() {
-    if (confirm(`Delete ${person.name} and all their gifts?`)) {
+    if (confirm(`${person.name} und alle Geschenke löschen?`)) {
       await deletePerson(person.id);
       router.push("/persons");
     }
@@ -123,7 +123,7 @@ export default function PersonDetail({
       const url = `${window.location.origin}/share/${result.token}`;
       setShareUrl(url);
       await navigator.clipboard.writeText(url);
-      toast({ title: "Link copied!", description: "Share link copied to clipboard" });
+      toast({ title: "Link kopiert!", description: "Teil-Link in die Zwischenablage kopiert" });
     }
   }
 
@@ -139,10 +139,10 @@ export default function PersonDetail({
       if (data.suggestions) {
         setAiSuggestions(data.suggestions);
       } else {
-        toast({ title: "Error", description: data.error || "Failed to generate suggestions", variant: "destructive" });
+        toast({ title: "Fehler", description: data.error || "Vorschläge konnten nicht generiert werden", variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to generate suggestions. Check your API key.", variant: "destructive" });
+      toast({ title: "Fehler", description: "Vorschläge konnten nicht generiert werden. API-Schlüssel prüfen.", variant: "destructive" });
     } finally {
       setLoadingAi(false);
     }
@@ -198,9 +198,9 @@ export default function PersonDetail({
                   </Badge>
                 )}
                 {gift.isPurchased && (
-                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    <Badge className="bg-green-100 text-green-800 text-xs">
                     <Check className="w-3 h-3 mr-1" />
-                    Purchased
+                    Gekauft
                   </Badge>
                 )}
                 {gift.isIdea && (
@@ -239,15 +239,15 @@ export default function PersonDetail({
               )}
               {gift.giftDate && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Date: {gift.giftDate}
+                  Datum: {gift.giftDate}
                 </p>
               )}
 
               {gift.tasks.length > 0 && (
                 <div className="mt-3 space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                     <ListTodo className="w-3 h-3" />
-                    Tasks ({gift.tasks.filter((t) => t.isDone).length}/
+                    Aufgaben ({gift.tasks.filter((t) => t.isDone).length}/
                     {gift.tasks.length})
                   </p>
                   {gift.tasks.map((task) => (
@@ -291,7 +291,7 @@ export default function PersonDetail({
                     variant="outline"
                     onClick={() => handleAddTask(gift.id)}
                   >
-                    Add
+                    Hinzufügen
                   </Button>
                   <Button
                     size="sm"
@@ -301,7 +301,7 @@ export default function PersonDetail({
                       setNewTaskTitle("");
                     }}
                   >
-                    Cancel
+                    Abbrechen
                   </Button>
                 </div>
               ) : (
@@ -310,7 +310,7 @@ export default function PersonDetail({
                   className="text-xs text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
-                  Add task
+                  Aufgabe hinzufügen
                 </button>
               )}
             </div>
@@ -325,7 +325,7 @@ export default function PersonDetail({
                     >
                       <Select name="occasionId">
                         <SelectTrigger className="h-8 text-xs w-40">
-                          <SelectValue placeholder="Occasion" />
+                          <SelectValue placeholder="Anlass" />
                         </SelectTrigger>
                         <SelectContent>
                           {occasions.map((occ) => (
@@ -343,7 +343,7 @@ export default function PersonDetail({
                       />
                       <div className="flex gap-1">
                         <Button type="submit" size="sm" className="text-xs h-7">
-                          Convert
+                          Umwandeln
                         </Button>
                         <Button
                           type="button"
@@ -352,7 +352,7 @@ export default function PersonDetail({
                           className="text-xs h-7"
                           onClick={() => setConvertingId(null)}
                         >
-                          Cancel
+                          Abbrechen
                         </Button>
                       </div>
                     </form>
@@ -364,7 +364,7 @@ export default function PersonDetail({
                       onClick={() => setConvertingId(gift.id)}
                     >
                       <ArrowRight className="w-3 h-3 mr-1" />
-                      Make Gift
+                      Zu Geschenk machen
                     </Button>
                   )}
                 </>
@@ -380,13 +380,13 @@ export default function PersonDetail({
                   }}
                 >
                   <ShoppingCart className="w-3 h-3 mr-1" />
-                  {gift.isPurchased ? "Unpurchase" : "Purchased"}
+                  {gift.isPurchased ? "Nicht gekauft" : "Gekauft"}
                 </Button>
               )}
               <Link href={`/gifts/${gift.id}`}>
                 <Button size="sm" variant="ghost" className="text-xs w-full">
                   <Edit className="w-3 h-3 mr-1" />
-                  Edit
+                  Bearbeiten
                 </Button>
               </Link>
               <Button
@@ -394,14 +394,14 @@ export default function PersonDetail({
                 variant="ghost"
                 className="text-xs text-destructive"
                 onClick={() => {
-                  if (confirm("Delete this gift?")) {
+                  if (confirm("Dieses Geschenk löschen?")) {
                     deleteGift(gift.id);
                     router.refresh();
                   }
                 }}
               >
                 <Trash2 className="w-3 h-3 mr-1" />
-                Delete
+                Löschen
               </Button>
             </div>
           </div>
@@ -418,7 +418,7 @@ export default function PersonDetail({
             <form action={handleUpdate} className="space-y-3">
               <Input name="name" defaultValue={person.name} className="text-2xl font-bold h-12" />
               <Input name="birthday" type="date" defaultValue={person.birthday} />
-              <Textarea name="notes" defaultValue={person.notes || ""} placeholder="Notes..." rows={2} />
+              <Textarea name="notes" defaultValue={person.notes || ""} placeholder="Notizen..." rows={2} />
               <div className="flex gap-2">
                 <Button type="submit" size="sm">Save</Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
@@ -430,7 +430,7 @@ export default function PersonDetail({
               <div className="flex items-center gap-3 mt-2 text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Cake className="w-4 h-4" />
-                  {person.birthday} (Age: {age})
+                  {person.birthday} (Alter: {age})
                 </span>
               </div>
               {person.notes && (
@@ -442,17 +442,17 @@ export default function PersonDetail({
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={handleShare}>
             <Share2 className="w-4 h-4 mr-1" />
-            Share
+            Teilen
           </Button>
           {!isEditing && (
             <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
               <Edit className="w-4 h-4 mr-1" />
-              Edit
+              Bearbeiten
             </Button>
           )}
           <Button size="sm" variant="destructive" onClick={handleDelete}>
             <Trash2 className="w-4 h-4 mr-1" />
-            Delete
+            Löschen
           </Button>
         </div>
       </div>
@@ -480,24 +480,24 @@ export default function PersonDetail({
       <div className="flex gap-2">
         <Button onClick={() => setShowQuickAdd(!showQuickAdd)}>
           <Plus className="w-4 h-4 mr-2" />
-          Quick Add Idea
+          Idee schnell hinzufügen
         </Button>
         <Button variant="outline" onClick={handleAiSuggest} disabled={loadingAi}>
           <Sparkles className="w-4 h-4 mr-2" />
-          {loadingAi ? "Generating..." : "AI Suggestions"}
+          {loadingAi ? "Wird generiert..." : "KI-Vorschläge"}
         </Button>
       </div>
 
       {showQuickAdd && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Quick Add Idea</CardTitle>
+            <CardTitle className="text-lg">Idee schnell hinzufügen</CardTitle>
           </CardHeader>
           <CardContent>
             <form action={handleQuickAdd} className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" name="title" required placeholder="Gift idea..." />
+                <Label htmlFor="title">Titel</Label>
+                <Input id="title" name="title" required placeholder="Geschenkidee..." />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -505,17 +505,17 @@ export default function PersonDetail({
                   <Input id="link" name="link" type="url" placeholder="https://..." />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Note (optional)</Label>
-                  <Input id="description" name="description" placeholder="Size, color, etc." />
+                  <Label htmlFor="description">Notiz (optional)</Label>
+                  <Input id="description" name="description" placeholder="Größe, Farbe, etc." />
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" size="sm">
                   <Plus className="w-4 h-4 mr-1" />
-                  Add Idea
+                  Idee hinzufügen
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>
-                  Cancel
+                  Abbrechen
                 </Button>
               </div>
             </form>
@@ -528,7 +528,7 @@ export default function PersonDetail({
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-500" />
-              AI Suggestions
+              KI-Vorschläge
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -560,7 +560,7 @@ export default function PersonDetail({
                     }
                   >
                     <Plus className="w-3 h-3 mr-1" />
-                    Add
+                    Hinzufügen
                   </Button>
                 </div>
               ))}
@@ -572,22 +572,22 @@ export default function PersonDetail({
       <Tabs defaultValue="all" className="w-full">
         <TabsList>
           <TabsTrigger value="all">
-            All ({person.gifts.length})
+            Alle ({person.gifts.length})
           </TabsTrigger>
           <TabsTrigger value="ideas">
             <Lightbulb className="w-3.5 h-3.5 mr-1" />
-            Ideas ({ideas.length})
+            Ideen ({ideas.length})
           </TabsTrigger>
           <TabsTrigger value="gifts">
             <Gift className="w-3.5 h-3.5 mr-1" />
-            Gifts ({pastGifts.length})
+            Geschenke ({pastGifts.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-3 mt-4">
           {person.gifts.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No gifts or ideas yet. Add your first idea above!
+              Noch keine Geschenke oder Ideen. Füge oben deine erste Idee hinzu!
             </p>
           ) : (
             person.gifts.map(renderGiftCard)
@@ -596,7 +596,7 @@ export default function PersonDetail({
 
         <TabsContent value="ideas" className="space-y-3 mt-4">
           {ideas.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No ideas yet.</p>
+            <p className="text-muted-foreground text-sm">Noch keine Ideen.</p>
           ) : (
             ideas.map(renderGiftCard)
           )}
@@ -604,7 +604,7 @@ export default function PersonDetail({
 
         <TabsContent value="gifts" className="space-y-3 mt-4">
           {pastGifts.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No gifts yet.</p>
+            <p className="text-muted-foreground text-sm">Noch keine Geschenke.</p>
           ) : (
             pastGifts.map(renderGiftCard)
           )}

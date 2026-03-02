@@ -56,7 +56,7 @@ export default function PersonForm({ person }: PersonFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="birthday">Birthday</Label>
+            <Label htmlFor="birthday">Geburtstag</Label>
             <Input
               id="birthday"
               name="birthday"
@@ -66,25 +66,25 @@ export default function PersonForm({ person }: PersonFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">Notizen</Label>
             <Textarea
               id="notes"
               name="notes"
               defaultValue={person?.notes || ""}
-              placeholder="Interests, preferences, sizes, etc."
+              placeholder="Interessen, Vorlieben, Größen, etc."
               rows={3}
             />
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : person ? "Update" : "Add Person"}
+              {loading ? "Wird gespeichert..." : person ? "Aktualisieren" : "Person hinzufügen"}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
             >
-              Cancel
+              Abbrechen
             </Button>
           </div>
         </form>

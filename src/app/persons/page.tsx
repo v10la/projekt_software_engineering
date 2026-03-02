@@ -11,15 +11,15 @@ export default async function PersonsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Persons</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Personen</h1>
           <p className="text-muted-foreground mt-1">
-            Manage the people you give gifts to
+            Verwalte die Personen, denen du Geschenke machst
           </p>
         </div>
         <Link href="/persons/new">
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Add Person
+            Person hinzufügen
           </Button>
         </Link>
       </div>
@@ -28,8 +28,7 @@ export default async function PersonsPage() {
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">
-              No persons added yet. Add your first person to start planning
-              gifts!
+              Noch keine Personen hinzugefügt. Füge deine erste Person hinzu, um mit der Geschenkplanung zu beginnen!
             </p>
           </CardContent>
         </Card>
@@ -65,12 +64,12 @@ export default async function PersonsPage() {
                       </div>
                       <div className="text-right">
                         <span className="text-xs text-muted-foreground">
-                          Birthday in
+                          Geburtstag in
                         </span>
                         <p className="font-bold text-lg">
                           {daysUntil}
                           <span className="text-xs font-normal text-muted-foreground ml-1">
-                            days
+                            Tage
                           </span>
                         </p>
                       </div>

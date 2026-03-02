@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     if (!personId) {
       return NextResponse.json(
-        { error: "personId is required" },
+        { error: "personId ist erforderlich" },
         { status: 400 }
       );
     }
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     if (!person) {
       return NextResponse.json(
-        { error: "Person not found" },
+        { error: "Person nicht gefunden" },
         { status: 404 }
       );
     }
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ suggestions });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to generate suggestions";
+    const message = error instanceof Error ? error.message : "Vorschläge konnten nicht generiert werden";
     return NextResponse.json(
       { error: message },
       { status: 500 }
