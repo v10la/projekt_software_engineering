@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Card,
@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [error, setError] = useState("");
@@ -35,16 +34,15 @@ export default function LoginPage() {
       email,
       password,
       redirect: false,
-      callbackUrl,
     });
 
-    setLoading(false);
-
-    if (res?.error) {
-      setError("E-Mail oder Passwort ist falsch.");
-    } else if (res?.url) {
-      router.push(res.url);
+    if (res?.ok) {
+      window.location.href = callbackUrl;
+      return;
     }
+
+    setLoading(false);
+    setError("E-Mail oder Passwort ist falsch.");
   }
 
   return (

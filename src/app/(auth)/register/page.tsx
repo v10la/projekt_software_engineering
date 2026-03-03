@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Card,
@@ -16,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -55,14 +53,17 @@ export default function RegisterPage() {
       email,
       password,
       redirect: false,
-      callbackUrl: "/",
     });
 
-    setLoading(false);
-
-    if (signInRes?.url) {
-      router.push(signInRes.url);
+    if (signInRes?.ok) {
+      window.location.href = "/";
+      return;
     }
+
+    setLoading(false);
+    setError(
+      "Registrierung erfolgreich, aber automatische Anmeldung fehlgeschlagen. Bitte melde dich manuell an."
+    );
   }
 
   return (
