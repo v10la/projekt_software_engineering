@@ -2,11 +2,20 @@
 
 import { db } from "@/lib/db";
 import { shareTokens, persons, gifts, occasions, giftLinks, giftImages } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
+import { requireUserId } from "@/lib/auth-utils";
 
 export async function generateShareToken(personId: number) {
+  const userId = await requireUserId();
+  const person = db
+    .select()
+    .from(persons)
+    .where(and(eq(persons.id, personId), eq(persons.userId, userId)))
+    .get();
+  if (!person) return { error: "Person not found" };
+
   const existing = db
     .select()
     .from(shareTokens)

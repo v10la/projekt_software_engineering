@@ -1,19 +1,20 @@
 import { db } from "@/lib/db";
 import { persons, gifts, occasions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Gift, Cake, TreePine, Lightbulb, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { requireUserId } from "@/lib/auth-utils";
 
-function getUpcomingBirthdays() {
+function getUpcomingBirthdays(userId: number) {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
   const currentMonthStr = String(currentMonth).padStart(2, "0");
   const nextMonthStr = String(nextMonth).padStart(2, "0");
 
-  const allPersons = db.select().from(persons).all();
+  const allPersons = db.select().from(persons).where(eq(persons.userId, userId)).all();
   return allPersons
     .filter((p) => {
       const month = p.birthday.split("-")[1];
@@ -36,7 +37,7 @@ function getUpcomingBirthdays() {
     .sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
-function getChristmasStatus() {
+function getChristmasStatus(userId: number) {
   const now = new Date();
   const christmas = new Date(now.getFullYear(), 11, 25);
   if (now > christmas) {
@@ -65,32 +66,41 @@ function getChristmasStatus() {
       .where(eq(gifts.occasionId, christmasOccasion.id))
       .all();
 
-    christmasGifts = allGifts.map((g) => {
-      const person = db
-        .select()
-        .from(persons)
-        .where(eq(persons.id, g.personId))
-        .get();
-      return { ...g, personName: person?.name || "Unbekannt" };
-    });
+    christmasGifts = allGifts
+      .map((g) => {
+        const person = db
+          .select()
+          .from(persons)
+          .where(and(eq(persons.id, g.personId), eq(persons.userId, userId)))
+          .get();
+        if (!person) return null;
+        return { ...g, personName: person.name };
+      })
+      .filter((g): g is NonNullable<typeof g> => g !== null);
   }
 
   return { daysUntil, gifts: christmasGifts };
 }
 
-function getStats() {
-  const totalPersons = db.select().from(persons).all().length;
-  const allGifts = db.select().from(gifts).all();
+function getStats(userId: number) {
+  const userPersons = db.select().from(persons).where(eq(persons.userId, userId)).all();
+  const totalPersons = userPersons.length;
+  const personIds = userPersons.map((p) => p.id);
+
+  const allGifts = personIds.length > 0
+    ? db.select().from(gifts).all().filter((g) => personIds.includes(g.personId))
+    : [];
   const totalIdeas = allGifts.filter((g) => g.isIdea).length;
   const totalGifts = allGifts.filter((g) => !g.isIdea).length;
   const purchased = allGifts.filter((g) => g.isPurchased).length;
   return { totalPersons, totalIdeas, totalGifts, purchased };
 }
 
-export default function DashboardPage() {
-  const birthdays = getUpcomingBirthdays();
-  const christmas = getChristmasStatus();
-  const stats = getStats();
+export default async function DashboardPage() {
+  const userId = await requireUserId();
+  const birthdays = getUpcomingBirthdays(userId);
+  const christmas = getChristmasStatus(userId);
+  const stats = getStats(userId);
 
   return (
     <div className="space-y-8">

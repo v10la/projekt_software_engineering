@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { persons, gifts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { generateGiftSuggestions } from "@/lib/ai";
+import { requireUserId } from "@/lib/auth-utils";
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await requireUserId();
     const { personId } = await req.json();
 
     if (!personId) {
@@ -18,7 +20,7 @@ export async function POST(req: NextRequest) {
     const person = db
       .select()
       .from(persons)
-      .where(eq(persons.id, personId))
+      .where(and(eq(persons.id, personId), eq(persons.userId, userId)))
       .get();
 
     if (!person) {

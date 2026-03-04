@@ -14,6 +14,9 @@ export const users = sqliteTable("users", {
 
 export const persons = sqliteTable("persons", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   birthday: text("birthday").notNull(),
   notes: text("notes").default(""),
@@ -24,6 +27,7 @@ export const persons = sqliteTable("persons", {
 
 export const occasions = sqliteTable("occasions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   isDefault: integer("is_default", { mode: "boolean" }).default(false),
 });
@@ -86,12 +90,19 @@ export const shareTokens = sqliteTable("share_tokens", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const personsRelations = relations(persons, ({ many }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
+  persons: many(persons),
+  occasions: many(occasions),
+}));
+
+export const personsRelations = relations(persons, ({ one, many }) => ({
+  user: one(users, { fields: [persons.userId], references: [users.id] }),
   gifts: many(gifts),
   shareTokens: many(shareTokens),
 }));
 
-export const occasionsRelations = relations(occasions, ({ many }) => ({
+export const occasionsRelations = relations(occasions, ({ one, many }) => ({
+  user: one(users, { fields: [occasions.userId], references: [users.id] }),
   gifts: many(gifts),
 }));
 

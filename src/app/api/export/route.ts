@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { persons, gifts, occasions, giftLinks } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
+import { requireUserId } from "@/lib/auth-utils";
 
 export async function GET() {
-  const allPersons = db.select().from(persons).orderBy(asc(persons.name)).all();
+  const userId = await requireUserId();
+  const allPersons = db.select().from(persons).where(eq(persons.userId, userId)).orderBy(asc(persons.name)).all();
 
   let html = `<!DOCTYPE html>
 <html lang="de">

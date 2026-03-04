@@ -1,9 +1,28 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { gifts, tasks, giftLinks, giftImages } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { gifts, tasks, giftLinks, giftImages, persons } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { requireUserId } from "@/lib/auth-utils";
+
+async function verifyPersonOwnership(personId: number): Promise<boolean> {
+  const userId = await requireUserId();
+  const person = db
+    .select()
+    .from(persons)
+    .where(and(eq(persons.id, personId), eq(persons.userId, userId)))
+    .get();
+  return !!person;
+}
+
+async function verifyGiftOwnership(giftId: number): Promise<{ personId: number } | null> {
+  const gift = db.select().from(gifts).where(eq(gifts.id, giftId)).get();
+  if (!gift) return null;
+  const owned = await verifyPersonOwnership(gift.personId);
+  if (!owned) return null;
+  return { personId: gift.personId };
+}
 
 export async function createGift(formData: FormData) {
   const personId = parseInt(formData.get("personId") as string);
@@ -28,6 +47,10 @@ export async function createGift(formData: FormData) {
 
   if (!title || !personId) {
     return { error: "Title and person are required" };
+  }
+
+  if (!(await verifyPersonOwnership(personId))) {
+    return { error: "Person not found" };
   }
 
   const result = db
@@ -75,8 +98,8 @@ export async function updateGift(id: number, formData: FormData) {
 
   if (!title) return { error: "Title is required" };
 
-  const gift = db.select().from(gifts).where(eq(gifts.id, id)).get();
-  if (!gift) return { error: "Gift not found" };
+  const ownership = await verifyGiftOwnership(id);
+  if (!ownership) return { error: "Gift not found" };
 
   db.update(gifts)
     .set({
@@ -102,7 +125,7 @@ export async function updateGift(id: number, formData: FormData) {
     db.insert(giftImages).values({ giftId: id, imagePath: imgPath }).run();
   }
 
-  revalidatePath(`/persons/${gift.personId}`);
+  revalidatePath(`/persons/${ownership.personId}`);
   revalidatePath(`/gifts/${id}`);
   revalidatePath("/");
   return { success: true };
@@ -113,48 +136,51 @@ export async function convertIdeaToGift(
   occasionId: number | null,
   giftDate: string | null
 ) {
-  const gift = db.select().from(gifts).where(eq(gifts.id, id)).get();
-  if (!gift) return { error: "Gift not found" };
+  const ownership = await verifyGiftOwnership(id);
+  if (!ownership) return { error: "Gift not found" };
 
   db.update(gifts)
     .set({ isIdea: false, occasionId, giftDate })
     .where(eq(gifts.id, id))
     .run();
 
-  revalidatePath(`/persons/${gift.personId}`);
+  revalidatePath(`/persons/${ownership.personId}`);
   revalidatePath("/");
   return { success: true };
 }
 
 export async function togglePurchased(id: number) {
-  const gift = db.select().from(gifts).where(eq(gifts.id, id)).get();
-  if (!gift) return { error: "Gift not found" };
+  const ownership = await verifyGiftOwnership(id);
+  if (!ownership) return { error: "Gift not found" };
+
+  const gift = db.select().from(gifts).where(eq(gifts.id, id)).get()!;
 
   db.update(gifts)
     .set({ isPurchased: !gift.isPurchased })
     .where(eq(gifts.id, id))
     .run();
 
-  revalidatePath(`/persons/${gift.personId}`);
+  revalidatePath(`/persons/${ownership.personId}`);
   revalidatePath(`/gifts/${id}`);
   revalidatePath("/");
   return { success: true };
 }
 
 export async function deleteGift(id: number) {
-  const gift = db.select().from(gifts).where(eq(gifts.id, id)).get();
-  if (!gift) return { error: "Gift not found" };
+  const ownership = await verifyGiftOwnership(id);
+  if (!ownership) return { error: "Gift not found" };
 
   db.delete(gifts).where(eq(gifts.id, id)).run();
-  revalidatePath(`/persons/${gift.personId}`);
+  revalidatePath(`/persons/${ownership.personId}`);
   revalidatePath("/");
   return { success: true };
 }
 
 export async function getGiftWithTasks(id: number) {
-  const gift = db.select().from(gifts).where(eq(gifts.id, id)).get();
-  if (!gift) return null;
+  const ownership = await verifyGiftOwnership(id);
+  if (!ownership) return null;
 
+  const gift = db.select().from(gifts).where(eq(gifts.id, id)).get()!;
   const giftTasks = db.select().from(tasks).where(eq(tasks.giftId, id)).all();
   const links = db.select().from(giftLinks).where(eq(giftLinks.giftId, id)).all();
   const images = db.select().from(giftImages).where(eq(giftImages.giftId, id)).all();

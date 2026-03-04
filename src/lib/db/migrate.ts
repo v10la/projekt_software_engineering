@@ -130,5 +130,29 @@ if (!existingAdmin) {
   );
 }
 
+// Add user_id columns for per-user data separation
+function columnExists(table: string, column: string): boolean {
+  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return cols.some((c) => c.name === column);
+}
+
+if (!columnExists("persons", "user_id")) {
+  sqlite.exec("ALTER TABLE persons ADD COLUMN user_id INTEGER");
+  const admin = sqlite.prepare("SELECT id FROM users LIMIT 1").get() as { id: number } | undefined;
+  if (admin) {
+    sqlite.prepare("UPDATE persons SET user_id = ? WHERE user_id IS NULL").run(admin.id);
+  }
+  console.log("Added user_id column to persons table.");
+}
+
+if (!columnExists("occasions", "user_id")) {
+  sqlite.exec("ALTER TABLE occasions ADD COLUMN user_id INTEGER");
+  const admin = sqlite.prepare("SELECT id FROM users LIMIT 1").get() as { id: number } | undefined;
+  if (admin) {
+    sqlite.prepare("UPDATE occasions SET user_id = ? WHERE is_default = 0 AND user_id IS NULL").run(admin.id);
+  }
+  console.log("Added user_id column to occasions table.");
+}
+
 sqlite.close();
 console.log("Database migrated and seeded successfully!");

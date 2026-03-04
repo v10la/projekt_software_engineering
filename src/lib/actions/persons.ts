@@ -2,15 +2,22 @@
 
 import { db } from "@/lib/db";
 import { persons, gifts, occasions, tasks, giftLinks, giftImages } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { requireUserId } from "@/lib/auth-utils";
 
 export async function getPersons() {
-  return db.select().from(persons).orderBy(asc(persons.name)).all();
+  const userId = await requireUserId();
+  return db.select().from(persons).where(eq(persons.userId, userId)).orderBy(asc(persons.name)).all();
 }
 
 export async function getPerson(id: number) {
-  const result = db.select().from(persons).where(eq(persons.id, id)).get();
+  const userId = await requireUserId();
+  const result = db
+    .select()
+    .from(persons)
+    .where(and(eq(persons.id, id), eq(persons.userId, userId)))
+    .get();
   return result || null;
 }
 
@@ -84,6 +91,7 @@ function validateBirthday(birthday: string): string | null {
 }
 
 export async function createPerson(formData: FormData) {
+  const userId = await requireUserId();
   const name = formData.get("name") as string;
   const birthday = formData.get("birthday") as string;
   const notes = (formData.get("notes") as string) || "";
@@ -99,7 +107,7 @@ export async function createPerson(formData: FormData) {
 
   const result = db
     .insert(persons)
-    .values({ name, birthday, notes })
+    .values({ name, birthday, notes, userId })
     .returning()
     .get();
 
@@ -109,6 +117,7 @@ export async function createPerson(formData: FormData) {
 }
 
 export async function updatePerson(id: number, formData: FormData) {
+  const userId = await requireUserId();
   const name = formData.get("name") as string;
   const birthday = formData.get("birthday") as string;
   const notes = (formData.get("notes") as string) || "";
@@ -122,6 +131,9 @@ export async function updatePerson(id: number, formData: FormData) {
     return { error: birthdayError };
   }
 
+  const existing = db.select().from(persons).where(and(eq(persons.id, id), eq(persons.userId, userId))).get();
+  if (!existing) return { error: "Person not found" };
+
   db.update(persons)
     .set({ name, birthday, notes })
     .where(eq(persons.id, id))
@@ -134,6 +146,10 @@ export async function updatePerson(id: number, formData: FormData) {
 }
 
 export async function deletePerson(id: number) {
+  const userId = await requireUserId();
+  const existing = db.select().from(persons).where(and(eq(persons.id, id), eq(persons.userId, userId))).get();
+  if (!existing) return { error: "Person not found" };
+
   db.delete(persons).where(eq(persons.id, id)).run();
   revalidatePath("/persons");
   revalidatePath("/");
