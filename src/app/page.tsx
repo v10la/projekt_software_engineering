@@ -146,7 +146,7 @@ export default async function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.totalGifts}</p>
-                <p className="text-xs text-muted-foreground">Geplante Geschenke</p>
+                <p className="text-xs text-muted-foreground">Geschenke</p>
               </div>
             </div>
           </CardContent>
