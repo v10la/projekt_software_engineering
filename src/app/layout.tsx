@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -26,8 +27,11 @@ export default function RootLayout({
       <body className={`${geistSans.variable} font-sans antialiased bg-background`}>
         <Providers>
           <Navbar />
-          <main className="ml-64 min-h-screen">
-            <div className="p-8">{children}</div>
+          <main className="ml-64 min-h-screen flex flex-col">
+            <div className="p-8 flex-1">{children}</div>
+            <div className="px-8">
+              <Footer />
+            </div>
           </main>
           <Toaster />
         </Providers>
