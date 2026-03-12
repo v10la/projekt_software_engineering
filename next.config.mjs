@@ -8,8 +8,8 @@ const nextConfig = {
       bodySizeLimit: "5mb",
     },
     instrumentationHook: true,
+    missingSuspenseWithCSRBailout: false,
   },
-  // Diese beiden Blöcke erlauben den Build trotz Warnungen/Fehlern
   eslint: {
     ignoreDuringBuilds: true,
   },
