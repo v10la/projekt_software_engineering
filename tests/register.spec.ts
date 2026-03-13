@@ -1,6 +1,6 @@
 ﻿import { test, expect } from '@playwright/test';
 
-test('Registrierung (und danach Login) funktioniert', async ({ page }) => {
+test('Registrierung und Login funktioniert', async ({ page }) => {
     const unique = Date.now();
     const email = `pw-${unique}@example.com`;
     const password = 'Test123!';

@@ -13,17 +13,16 @@ async function gotoPersons(page: Page) {
     await expect(page.getByRole('button', { name: /person hinzufügen/i })).toBeVisible();
 }
 
-function editButton(page: Page): Locator {
+function personEditButton(page: Page): Locator {
     return page
         .getByRole('main')
-        .locator('button:has(svg.lucide-square-pen), button:has(svg[data-lucide="square-pen"])')
+        .getByRole('button', { name: /^bearbeiten$/i })
         .first();
 }
 
 async function openFirstExistingPerson(page: Page) {
     const main = page.getByRole('main');
 
-    
     const personLinks = main.locator('a[href^="/persons/"]:not([href="/persons/new"])');
     const count = await personLinks.count();
     expect(count).toBeGreaterThan(0);
@@ -31,46 +30,58 @@ async function openFirstExistingPerson(page: Page) {
     await personLinks.first().click();
 
     await expect(page.getByRole('link', { name: /zurück/i })).toBeVisible({ timeout: 15000 });
-    await expect(editButton(page)).toBeVisible({ timeout: 15000 });
+    await expect(personEditButton(page)).toBeVisible({ timeout: 15000 });
 }
 
 async function editCurrentPerson(page: Page, newName: string, newDateISO: string) {
     const main = page.getByRole('main');
 
-    await editButton(page).click();
+    await personEditButton(page).click();
 
-    
-    const okButton = main.getByRole('button', { name: /^ok$/i });
-    await expect(okButton).toBeVisible({ timeout: 15000 });
+    // Editor kann inline in <main> oder in einem Dialog erscheinen.
+    const editor = page.getByRole('dialog').first().or(main);
 
-   
-    const dateInput = main.locator('input[type="date"]').first();
-    const hasNativeDate = (await dateInput.count()) > 0;
+    const nameInputByLabel = editor.getByLabel('Name', { exact: true }).first();
+    const anyInput = editor.locator('input').first();
 
-    const nameInput = hasNativeDate
-        ? main.locator('input:not([type="date"])').first()
-        : main.locator('input').first();
+    await expect(nameInputByLabel.or(anyInput)).toBeVisible({ timeout: 15000 });
 
-    const dateField = hasNativeDate ? dateInput : main.locator('input').nth(1);
+    const nameInput =
+        (await nameInputByLabel.count()) > 0
+            ? nameInputByLabel
+            : anyInput;
 
-    await expect(nameInput).toBeVisible();
+    const nativeDateInput = editor.locator('input[type="date"]').first();
+    const labeledDateInput = editor.getByLabel(/geburtstag|datum/i).first();
+
+    let dateField: Locator;
+    if ((await nativeDateInput.count()) > 0) {
+        dateField = nativeDateInput;
+    } else if ((await labeledDateInput.count()) > 0) {
+        dateField = labeledDateInput;
+    } else {
+        dateField = editor.locator('input').nth(1);
+    }
+
+    await expect(nameInput).toBeVisible({ timeout: 15000 });
     await nameInput.fill(newName);
 
-    
-    if (hasNativeDate) {
-        await dateField.fill(newDateISO); 
+    if ((await nativeDateInput.count()) > 0) {
+        await dateField.fill(newDateISO);
     } else {
-        
         const ddmmyyyy = newDateISO.split('-').reverse().join('.');
         await dateField.fill(ddmmyyyy);
     }
 
-    await okButton.click();
+    const saveButton = editor
+        .getByRole('button', { name: /^(ok|speichern|übernehmen)$/i })
+        .first();
 
-    
+    await expect(saveButton).toBeVisible({ timeout: 15000 });
+    await saveButton.click();
+
     await expect(main.getByRole('heading', { level: 1, name: newName })).toBeVisible({ timeout: 15000 });
 
-    
     const ddmmyyyy = newDateISO.split('-').reverse().join('.');
     await expect(main.getByText(new RegExp(`${newDateISO}|${ddmmyyyy}`))).toBeVisible({ timeout: 15000 });
 }
@@ -87,6 +98,5 @@ test('Person bearbeiten → vorhandene Person ändern (Name + Datum) und OK', as
 
     await editCurrentPerson(page, newName, newDateISO);
 
-   
     await page.getByRole('link', { name: /zurück/i }).click();
 });

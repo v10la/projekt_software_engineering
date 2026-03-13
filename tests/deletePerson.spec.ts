@@ -13,18 +13,10 @@ async function gotoPersons(page: Page) {
     await expect(page.getByRole('button', { name: /person hinzufügen/i })).toBeVisible();
 }
 
-function deleteButton(page: Page): Locator {
-    const root = page.getByRole('main');
-
-    return root
-        .locator(
-            [
-                'button:has(svg.lucide-trash-2)',
-                'button:has(svg.lucide-trash2)',
-                'button:has(svg[data-lucide="trash-2"])',
-                'button:has(svg[data-lucide="trash2"])',
-            ].join(', ')
-        )
+function personDeleteButton(page: Page): Locator {
+    return page
+        .getByRole('main')
+        .getByRole('button', { name: /^löschen$/i })
         .first();
 }
 
@@ -38,17 +30,30 @@ async function openFirstExistingPerson(page: Page) {
     await personLinks.first().click();
 
     await expect(page.getByRole('link', { name: /zurück/i })).toBeVisible({ timeout: 15000 });
-    await expect(deleteButton(page)).toBeVisible({ timeout: 15000 });
+    await expect(personDeleteButton(page)).toBeVisible({ timeout: 15000 });
 }
 
-async function deleteCurrentPersonWithConfirm(page: Page) {
-   
+async function deleteCurrentPersonWithConfirm(page: Page, name: string) {
+    const main = page.getByRole('main');
+
     page.once('dialog', async (dialog) => {
-        // confirm popup -> OK
         await dialog.accept();
     });
 
-    await deleteButton(page).click();
+    await personDeleteButton(page).click();
+
+    // Wichtig: nicht sofort page.goto('/persons') machen.
+    // Erst warten, bis die Detailansicht der gelöschten Person verschwunden ist.
+    await expect(
+        main.getByRole('heading', { level: 1, name })
+    ).toHaveCount(0, { timeout: 15000 });
+
+    // Falls die App nicht selbst auf /persons zurückspringt, jetzt erst navigieren.
+    if (!/\/persons\/?$/.test(page.url())) {
+        await page.goto('/persons');
+    }
+
+    await expect(page.getByRole('button', { name: /person hinzufügen/i })).toBeVisible({ timeout: 15000 });
 }
 
 test('Person löschen → vorhandene Person löschen (Popup OK)', async ({ page }) => {
@@ -57,12 +62,11 @@ test('Person löschen → vorhandene Person löschen (Popup OK)', async ({ page 
 
     await openFirstExistingPerson(page);
 
-    
     const name = (await page.getByRole('main').getByRole('heading', { level: 1 }).innerText()).trim();
 
-    await deleteCurrentPersonWithConfirm(page);
+    await deleteCurrentPersonWithConfirm(page, name);
 
-    
-    await page.goto('/persons');
-    await expect(page.getByText(name, { exact: true })).toHaveCount(0, { timeout: 15000 });
+    await expect(
+        page.getByRole('main').getByRole('heading', { level: 3, name })
+    ).toHaveCount(0, { timeout: 15000 });
 });
