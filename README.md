@@ -59,30 +59,30 @@ OPENAI_API_KEY=sk-...
 # Optional: E-Mail-Benachrichtigungen
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-NOTIFICATION_EMAIL=recipient@example.com
+SMTP_USER=DEINE@MAIL.de
+SMTP_PASS=DEIN_PASSWORT
+NOTIFICATION_EMAIL=DEINE@EMAIL.de
 
 # App-URL (für Freigabelinks und Cron)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### Development
+### Installation
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Öffnen Sie  [http://localhost:3000](http://localhost:3000).
 
-### Production Build
+### Produktions-Build
 
 ```bash
 npm run build
 npm start
 ```
 
-## Project Structure
+## Projektstruktur
 
 ```
 src/
