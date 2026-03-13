@@ -1,35 +1,35 @@
 # Geschenke-Manager
 
-A full-stack gift management application for tracking gifts and gift ideas for friends and family.
+Eine Full-Stack-Anwendung zur Geschenkeverwaltung, mit der sich Geschenke und Geschenkideen für Freunde und Familie verwalten lassen.
 
-## Features
+## Funktionen
 
-- **Person Management** — Add people with birthdays and personal notes
-- **Gift & Idea Tracking** — Record past gifts and capture new ideas with text, links, and images
-- **Quick Idea Capture** — Fast form to save ideas with minimal friction
-- **Idea-to-Gift Conversion** — One-click conversion from idea to planned gift with occasion and date
-- **Task Management** — Add sub-tasks (TODOs) to gifts (e.g., "buy wrapping paper")
-- **Custom Occasions** — Built-in Geburtstag (Birthday) & Weihnachten (Christmas), plus custom occasions
-- **Dashboard** — Overview of upcoming birthdays and Christmas gift status
-- **Share Links** — Generate public read-only links to share gift ideas for a person
-- **HTML Export** — Download the complete gift list as a standalone HTML file
-- **Email Notifications** — Monthly birthday reminders and weekly Christmas status during December
-- **AI Gift Suggestions** — OpenAI-powered suggestions based on past gifts and interests
+- **Personenverwaltung** — Personen mit Geburtstagen und persönlichen Notizen hinzufügen
+- **Geschenke & Ideen verwalten** — Frühere Geschenke erfassen und neue Ideen mit Text, Links und Bildern festhalten
+- **Schnelle Ideenerfassung** — Schnelles Formular zum Speichern von Ideen mit minimalem Aufwand
+- **Umwandlung von Ideen in Geschenke** — Umwandlung von Ideen in geplante Geschenke mit Anlass und Datum mit einem Klick
+- **Aufgabenverwaltung** — Füge Unteraufgaben (To-dos) zu Geschenken hinzu (z. B. „Geschenkpapier kaufen“)
+- **Benutzerdefinierte Anlässe** — Integrierte Anlässe „Geburtstag“ und „Weihnachten“ sowie benutzerdefinierte Anlässe
+- **Dashboard** — Übersicht über anstehende Geburtstage und den Status von Weihnachtsgeschenken
+- **Links teilen** — Erstellen Sie öffentlich zugängliche, schreibgeschützte Links, um Geschenkideen für eine Person zu teilen
+- **HTML-Export** — Laden Sie die vollständige Geschenkliste als eigenständige HTML-Datei herunter
+- **E-Mail-Benachrichtigungen** — Monatliche Geburtstagserinnerungen und wöchentlicher Weihnachtsstatus im Dezember
+- **KI-Geschenkvorschläge** — Von OpenAI generierte Vorschläge basierend auf früheren Geschenken und Interessen
 
 ## Tech Stack
 
 - **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Database:** SQLite via better-sqlite3
+- **Sprache:** TypeScript
+- **Datenbank:** SQLite über better-sqlite3
 - **ORM:** Drizzle ORM
 - **UI:** Tailwind CSS + shadcn/ui
 - **Icons:** Lucide React
-- **Notifications:** node-cron + nodemailer
-- **AI:** OpenAI API (gpt-4o-mini)
+- **Benachrichtigungen:** node-cron + nodemailer
+- **KI:** Groq (llama-3.3-70b-versatile)
 
-## Getting Started
+## Erste Schritte
 
-### Prerequisites
+### Voraussetzungen
 
 - Node.js 20+
 - npm
@@ -40,30 +40,30 @@ A full-stack gift management application for tracking gifts and gift ideas for f
 npm install
 ```
 
-### Database Setup
+### Datenbank-Einrichtung
 
 ```bash
 npm run db:migrate
 ```
 
-This creates the SQLite database in `data/geschenke.db` and seeds the default occasions.
+Dadurch wird die SQLite-Datenbank in `data/geschenke.db` erstellt und mit den Standard-Anlässen vorbelegt.
 
-### Configuration
+### Konfiguration
 
-Copy `.env.local` and configure:
+Kopiere `.env.local` und konfiguriere:
 
 ```env
-# Required for AI suggestions
+# Erforderlich für KI-Vorschläge
 OPENAI_API_KEY=sk-...
 
-# Optional: Email notifications
+# Optional: E-Mail-Benachrichtigungen
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 NOTIFICATION_EMAIL=recipient@example.com
 
-# App URL (for share links and cron)
+# App-URL (für Freigabelinks und Cron)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -104,23 +104,23 @@ data/                   — SQLite database (auto-created)
 public/uploads/         — Uploaded images
 ```
 
-## API Endpoints
+## API-Endpunkte
 
-| Endpoint | Method | Description |
+| Endpunkt | Methode | Beschreibung |
 |---|---|---|
-| `/api/export` | GET | Download full list as HTML |
-| `/api/suggest` | POST | Generate AI gift suggestions |
-| `/api/notifications?type=birthday` | GET | Trigger birthday reminders |
-| `/api/notifications?type=christmas` | GET | Trigger Christmas status |
-| `/api/upload` | POST | Upload image file |
+| `/api/export` | GET | Vollständige Liste als HTML herunterladen |
+| `/api/suggest` | POST | AI-Geschenkvorschläge generieren |
+| `/api/notifications?type=birthday` | GET | Geburtstagserinnerungen auslösen |
+| `/api/notifications?type=christmas` | GET | Weihnachtsstatus auslösen |
+| `/api/upload` | POST | Bilddatei hochladen |
 
-## Notifications
+## Benachrichtigungen
 
-Notifications are automatically scheduled via cron:
+Benachrichtigungen werden automatisch über Cron geplant:
 
-- **Birthday reminders**: 1st of each month at 9:00 AM
-- **Christmas status**: Every Monday in December at 9:00 AM
+- **Geburtstagserinnerungen**: Am 1. jedes Monats um 9:00 Uhr
+- **Weihnachtsstatus**: Jeden Montag im Dezember um 9:00 Uhr
 
-Requires SMTP configuration in `.env.local`. Without email config, the notification endpoints still generate HTML content and return it in the API response.
+Erfordert eine SMTP-Konfiguration in `.env.local`. Ohne E-Mail-Konfiguration generieren die Benachrichtigungs-Endpunkte weiterhin HTML-Inhalte und geben diese in der API-Antwort zurück.
 
-You can also trigger notifications manually via the API endpoints above.
+Sie können Benachrichtigungen auch manuell über die oben genannten API-Endpunkte auslösen.
