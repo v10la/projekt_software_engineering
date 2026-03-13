@@ -14,7 +14,7 @@ Eine Full-Stack-Anwendung zur Geschenkeverwaltung, mit der sich Geschenke und Ge
 - **Links teilen** — Erstellen Sie öffentlich zugängliche, schreibgeschützte Links, um Geschenkideen für eine Person zu teilen
 - **HTML-Export** — Laden Sie die vollständige Geschenkliste als eigenständige HTML-Datei herunter
 - **E-Mail-Benachrichtigungen** — Monatliche Geburtstagserinnerungen und wöchentlicher Weihnachtsstatus im Dezember
-- **KI-Geschenkvorschläge** — Von OpenAI generierte Vorschläge basierend auf früheren Geschenken und Interessen
+- **KI-Geschenkvorschläge** — Von Groq generierte Vorschläge basierend auf früheren Geschenken und Interessen
 
 ## Tech Stack
 
