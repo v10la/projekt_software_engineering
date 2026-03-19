@@ -1,13 +1,14 @@
 import { db } from "@/lib/db";
-import { persons, gifts, occasions } from "@/lib/db/schema";
+import { persons, gifts, occasions, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import nodemailer from "nodemailer";
 
+// Erstellt den E-Mail-Versender mit Support für Login vs. Absender-Alias
 function getTransporter() {
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    host: process.env.SMTP_HOST || "smtp.mailbox.org",
     port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false,
+    secure: process.env.SMTP_PORT === "465",
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -15,113 +16,146 @@ function getTransporter() {
   });
 }
 
-export async function sendBirthdayReminders() {
+// Berechnet präzise die Tage bis zu einem Datum (Format: YYYY-MM-DD oder MM-DD)
+function getDaysUntil(dateStr: string) {
   const now = new Date();
-  const nextMonth = now.getMonth() + 2; // 1-indexed for comparison
-  const targetMonth = nextMonth > 12 ? 1 : nextMonth;
-  const monthStr = String(targetMonth).padStart(2, "0");
-
-  const allPersons = db.select().from(persons).all();
-  const birthdayPersons = allPersons.filter((p) => {
-    const bMonth = p.birthday.split("-")[1];
-    return bMonth === monthStr;
-  });
-
-  if (birthdayPersons.length === 0) return { sent: false, reason: "No birthdays next month" };
-
-  let html = `<h2>Birthdays Next Month</h2><ul>`;
-  for (const person of birthdayPersons) {
-    const personGifts = db
-      .select({ title: gifts.title, isIdea: gifts.isIdea })
-      .from(gifts)
-      .where(eq(gifts.personId, person.id))
-      .all();
-
-    const ideas = personGifts.filter((g) => g.isIdea).map((g) => g.title);
-
-    html += `<li><strong>${person.name}</strong> — ${person.birthday}`;
-    if (ideas.length > 0) {
-      html += `<br/>Gift ideas: ${ideas.join(", ")}`;
-    } else {
-      html += `<br/><em>No gift ideas yet!</em>`;
-    }
-    html += `</li>`;
-  }
-  html += `</ul>`;
-
-  if (process.env.SMTP_USER && process.env.NOTIFICATION_EMAIL) {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: process.env.NOTIFICATION_EMAIL,
-      subject: `Birthday Reminders — ${birthdayPersons.length} birthdays next month`,
-      html,
-    });
-    return { sent: true, count: birthdayPersons.length };
-  }
-
-  return { sent: false, reason: "Email not configured", html };
+  now.setHours(0, 0, 0, 0);
+  
+  // Wir extrahieren Monat und Tag, um das Jahr flexibel zu handhaben
+  const parts = dateStr.split("-");
+  const month = parseInt(parts[parts.length - 2]);
+  const day = parseInt(parts[parts.length - 1]);
+  
+  let target = new Date(now.getFullYear(), month - 1, day);
+  if (now > target) target.setFullYear(now.getFullYear() + 1);
+  
+  const diff = target.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * 1. GEBURTSTAGE: Erinnert 7, 3, 1 (Morgen) und 0 (Heute) Tage vorher.
+ * Inklusive Notizen und Geschenkideen aus der Datenbank.
+ */
+export async function sendBirthdayReminders() {
+  const allUsers = db.select().from(users).all();
+
+  for (const user of allUsers) {
+    if (!user.email) continue;
+    try {
+      const userPersons = db.select().from(persons).where(eq(persons.userId, user.id)).all();
+      const upcoming = userPersons.filter((p) => {
+        if (!p.birthday) return false;
+        const days = getDaysUntil(p.birthday);
+        return [7, 3, 1, 0].includes(days) || process.env.DEBUG_EMAIL === "true";
+      });
+
+      if (upcoming.length > 0) {
+        let html = `<h2>Hallo ${user.name || "Nutzer"},</h2><p>Hier sind anstehende Geburtstage:</p><hr/>`;
+        for (const p of upcoming) {
+          const days = getDaysUntil(p.birthday);
+          let timeText = days === 0 ? "HEUTE! 🎂" : (days === 1 ? "MORGEN" : `in ${days} Tagen`);
+
+          html += `<div style="margin-bottom: 20px;">`;
+          html += `<b style="font-size: 1.1em;">${p.name}</b> feiert ${timeText} (${p.birthday})<br/>`;
+          if (p.notes) html += `<i style="color: #666;">Deine Notiz: "${p.notes}"</i><br/>`;
+
+          const ideas = db.select().from(gifts).where(eq(gifts.personId, p.id)).all()
+                          .filter(g => g.isIdea).map(g => g.title);
+          html += ideas.length > 0 ? `<span style="color: #2e7d32;">Ideen: ${ideas.join(", ")}</span>` : `<span style="color: #d32f2f;">⚠️ Keine Geschenkideen hinterlegt!</span>`;
+          html += `</div>`;
+        }
+        await getTransporter().sendMail({
+          from: `"Geschenke-Manager" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+          to: user.email,
+          subject: `Geburtstags-Erinnerung 🎁`,
+          html,
+        });
+      }
+    } catch (err) { console.error(`Fehler bei User ${user.email}:`, err); }
+  }
+  return { success: true };
+}
+
+/**
+ * 2. WEIHNACHTEN: Ein detaillierter Status-Check (aktiv im Dezember oder Debug-Mode).
+ */
 export async function sendChristmasStatus() {
   const now = new Date();
-  if (now.getMonth() !== 11) {
-    return { sent: false, reason: "Not December" };
+  const daysLeft = getDaysUntil(`${now.getFullYear()}-12-24`);
+  if (now.getMonth() !== 11 && process.env.DEBUG_EMAIL !== "true") return { sent: false };
+
+  const allUsers = db.select().from(users).all();
+  const christmasOccasion = db.select().from(occasions).where(eq(occasions.name, "Weihnachten")).get();
+
+  for (const user of allUsers) {
+    if (!user.email) continue;
+    try {
+      const userPersons = db.select().from(persons).where(eq(persons.userId, user.id)).all();
+      let html = `<h2>Weihnachts-Check</h2><p>Noch genau <b>${daysLeft} Tage</b> bis Heiligabend!</p>`;
+      html += `<table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">`;
+      html += `<tr style="background: #eee;"><th>Person</th><th>Geschenk-Status</th></tr>`;
+      for (const p of userPersons) {
+        const cGifts = db.select().from(gifts).where(eq(gifts.personId, p.id)).all()
+                         .filter(g => christmasOccasion && g.occasionId === christmasOccasion.id);
+        if (cGifts.length === 0) {
+          html += `<tr><td>${p.name}</td><td><em>Keine Geschenke geplant</em></td></tr>`;
+        } else {
+          for (const g of cGifts) {
+            html += `<tr><td>${p.name}</td><td>${g.isPurchased ? '✅' : '❌'} ${g.title}</td></tr>`;
+          }
+        }
+      }
+      html += `</table>`;
+      await getTransporter().sendMail({
+        from: `"Geschenke-Manager" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        to: user.email,
+        subject: `Weihnachts-Check: Noch ${daysLeft} Tage!`,
+        html,
+      });
+    } catch (err) { console.error(err); }
   }
+  return { success: true };
+}
 
-  const christmasOccasion = db
-    .select()
-    .from(occasions)
-    .where(eq(occasions.name, "Weihnachten"))
-    .get();
+/**
+ * 3. ANDERE ANLÄSSE: Erinnert an alle manuell angelegten Events (Hochzeitstage, etc.).
+ */
+export async function sendOccasionReminders() {
+  const allUsers = db.select().from(users).all();
+  const allOccasions = db.select().from(occasions).all();
 
-  if (!christmasOccasion) return { sent: false, reason: "No Christmas occasion found" };
-
-  const allPersons = db.select().from(persons).all();
-
-  let html = `<h2>Christmas Gift Status</h2>`;
-  html += `<p>${25 - now.getDate()} days until Christmas!</p>`;
-  html += `<table border="1" cellpadding="8" cellspacing="0">`;
-  html += `<tr><th>Person</th><th>Gift</th><th>Status</th></tr>`;
-
-  let hasAny = false;
-  for (const person of allPersons) {
-    const christmasGifts = db
-      .select()
-      .from(gifts)
-      .where(eq(gifts.personId, person.id))
-      .all()
-      .filter((g) => g.occasionId === christmasOccasion.id);
-
-    for (const gift of christmasGifts) {
-      hasAny = true;
-      const status = gift.isPurchased
-        ? "Purchased"
-        : gift.isIdea
-          ? "Idea only"
-          : "Not purchased yet";
-      html += `<tr><td>${person.name}</td><td>${gift.title}</td><td>${status}</td></tr>`;
-    }
-
-    if (christmasGifts.length === 0) {
-      hasAny = true;
-      html += `<tr><td>${person.name}</td><td colspan="2"><em>No Christmas gifts planned</em></td></tr>`;
-    }
+  for (const user of allUsers) {
+    if (!user.email) continue;
+    try {
+      const userPersons = db.select().from(persons).where(eq(persons.userId, user.id)).all();
+      let reminders = [];
+      for (const p of userPersons) {
+        const uGifts = db.select().from(gifts).where(eq(gifts.personId, p.id)).all();
+        for (const g of uGifts) {
+          const occ = allOccasions.find(o => o.id === g.occasionId);
+          if (!occ || !occ.date || occ.name === "Weihnachten") continue;
+          const days = getDaysUntil(occ.date);
+          if ([14, 7, 3, 1, 0].includes(days) || process.env.DEBUG_EMAIL === "true") {
+            reminders.push({ person: p.name, occasion: occ.name, days, gift: g.title, done: g.isPurchased });
+          }
+        }
+      }
+      if (reminders.length > 0) {
+        let html = `<h2>Anstehende Anlässe</h2><ul>`;
+        for (const r of reminders) {
+          let t = r.days === 0 ? "HEUTE!" : (r.days === 1 ? "MORGEN" : `in ${r.days} Tagen`);
+          html += `<li style="margin-bottom: 10px;"><b>${r.occasion}</b> für ${r.person}: ${r.gift} ${r.done ? '✅' : '❌'} (${t})</li>`;
+        }
+        html += `</ul>`;
+        await getTransporter().sendMail({
+          from: `"Geschenke-Manager" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+          to: user.email,
+          subject: `Wichtige Erinnerung: ${reminders.length} Termine!`,
+          html,
+        });
+      }
+    } catch (err) { console.error(err); }
   }
-  html += `</table>`;
-
-  if (!hasAny) return { sent: false, reason: "No persons in database" };
-
-  if (process.env.SMTP_USER && process.env.NOTIFICATION_EMAIL) {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: process.env.NOTIFICATION_EMAIL,
-      subject: `Christmas Gift Status — ${25 - now.getDate()} days left`,
-      html,
-    });
-    return { sent: true };
-  }
-
-  return { sent: false, reason: "Email not configured", html };
+  return { success: true };
 }
