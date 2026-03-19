@@ -1,26 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import { sendBirthdayReminders, sendChristmasStatus } from "@/lib/notifications";
+import { NextResponse } from "next/server";
+import { 
+  sendBirthdayReminders, 
+  sendChristmasStatus, 
+  sendOccasionReminders 
+} from "@/lib/notifications";
 
-export async function GET(req: NextRequest) {
-  const type = req.nextUrl.searchParams.get("type");
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const key = searchParams.get("key");
+  const type = searchParams.get("type");
+
+  // Sicherheits-Check
+  if (key !== "1cIyWUjFVna7yw6vOUmZQyoBeXee14YjgeEQ4RVz2JI=") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
-    if (type === "birthday") {
-      const result = await sendBirthdayReminders();
-      return NextResponse.json(result);
-    } else if (type === "christmas") {
-      const result = await sendChristmasStatus();
-      return NextResponse.json(result);
+    let result;
+    if (type === "christmas") {
+      result = await sendChristmasStatus();
+    } else if (type === "occasions") {
+      result = await sendOccasionReminders();
     } else {
-      const birthday = await sendBirthdayReminders();
-      const christmas = await sendChristmasStatus();
-      return NextResponse.json({ birthday, christmas });
+      // Standardmäßig (ohne Typ) werden Geburtstage geprüft
+      result = await sendBirthdayReminders();
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("API Notification Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
